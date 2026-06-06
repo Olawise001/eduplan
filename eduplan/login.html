@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Log in — EduPlan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/style.css"/>
+</head>
+<body>
+<div class="ep-auth-page">
+
+  <div class="ep-auth-visual">
+    <div class="ep-auth-visual__content">
+      <div class="ep-auth-visual__logo">
+        <div class="ep-auth-visual__logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <span class="ep-auth-visual__logo-name">EduPlan</span>
+      </div>
+      <h2>Welcome back,<br><em>educator.</em></h2>
+      <p>Your lesson plans, scheme of work, and submission history — all in one place.</p>
+      <div class="ep-auth-feature" style="margin-top:36px;">
+        <div class="ep-auth-feature__icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <span>Your data is encrypted and secure</span>
+      </div>
+      <div class="ep-auth-feature">
+        <div class="ep-auth-feature__icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <span>Access all your previously generated plans</span>
+      </div>
+      <div class="ep-auth-feature">
+        <div class="ep-auth-feature__icon"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+        <span>Credits never expire — pick up where you left off</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ep-auth-form">
+    <div class="ep-auth-form__inner">
+      <h1>Log in to EduPlan</h1>
+      <p>No account yet? <a href="register.html" style="color:var(--sage);font-weight:600;">Register free</a></p>
+
+      <div class="ep-form-group" style="margin-bottom:16px;">
+        <label>Email Address <span class="req">*</span></label>
+        <input class="ep-input" id="loginEmail" type="email" autocomplete="email"/>
+      </div>
+      <div class="ep-form-group" style="margin-bottom:8px;">
+        <label>Password <span class="req">*</span></label>
+        <input class="ep-input" id="loginPassword" type="password" autocomplete="current-password"/>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+        <a href="#" style="font-size:13px;color:var(--sage);font-weight:500;">Forgot password?</a>
+      </div>
+
+      <div id="login-error" style="display:none;color:var(--danger);background:var(--danger-pale);border:1px solid rgba(179,48,48,.2);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:16px;"></div>
+
+      <button class="ep-btn ep-btn--primary ep-btn--full ep-btn--lg" id="loginBtn" onclick="doLogin()">
+        <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Log in
+      </button>
+
+      <div class="ep-divider"><span>or</span></div>
+
+      <!-- Demo access -->
+      <div style="background:var(--gold-pale);border:1px solid rgba(196,146,42,.2);border-radius:var(--r);padding:14px 16px;">
+        <p style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:8px;">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Demo Mode
+        </p>
+        <p style="font-size:12px;color:var(--ink-mid);margin-bottom:10px;">Try EduPlan without creating an account. Data is stored locally.</p>
+        <div style="display:flex;gap:8px;">
+          <button class="ep-btn ep-btn--ghost ep-btn--sm" style="flex:1;" onclick="demoLogin('individual')">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            Individual demo
+          </button>
+          <button class="ep-btn ep-btn--ghost ep-btn--sm" style="flex:1;" onclick="demoLogin('school')">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            School demo
+          </button>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:var(--ink-soft);text-align:center;margin-top:20px;">
+        <a href="index.html" style="color:var(--ink-soft);">← Back to homepage</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="assets/config.js"></script>
+<script>
+// If already logged in, redirect
+if (Auth.isLoggedIn()) window.location.href = "dashboard.html";
+
+document.getElementById("loginPassword").addEventListener("keydown", e => {
+  if (e.key === "Enter") doLogin();
+});
+
+function doLogin() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const pw    = document.getElementById("loginPassword").value;
+  const errEl = document.getElementById("login-error");
+  const btn   = document.getElementById("loginBtn");
+
+  errEl.style.display = "none";
+
+  if (!email || !pw) {
+    errEl.textContent = "Please enter your email and password.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;"></span> Logging in…';
+
+  // TODO: Replace with real Supabase auth:
+  // const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+  // if (error) { showErr(error.message); return; }
+  // const profile = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+  // Auth.set(profile.data);
+
+  // PHASE 1 PLACEHOLDER — check localStorage user
+  setTimeout(() => {
+    const saved = Auth.get();
+    if (saved && saved.email === email) {
+      window.location.href = "dashboard.html";
+    } else {
+      // Demo fallback: create a temporary session
+      errEl.textContent = "No account found with that email. Use the Demo buttons below, or register first.";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Log in';
+    }
+  }, 800);
+}
+
+function demoLogin(type) {
+  if (type === "individual") {
+    Auth.set({ name: "Demo Teacher", email: "demo@individual.com", type: "individual", role: "teacher", credits: 50, subject: "Mathematics" });
+  } else {
+    Auth.set({ name: "Demo Admin", email: "demo@school.com", type: "school", role: "principal", credits: 200, schoolName: "Demo Academy", state: "Lagos" });
+  }
+  window.location.href = "dashboard.html";
+}
+
+// Spin keyframe
+const style = document.createElement("style");
+style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
+document.head.appendChild(style);
+</script>
+</body>
+</html>
