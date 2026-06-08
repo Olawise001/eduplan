@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>School Admin — EduPlan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── Tab pills ── */
+.ep-tab-pills{display:flex;gap:4px;background:var(--paper-dark);border-radius:var(--r-lg);padding:4px;margin-bottom:24px;flex-wrap:wrap;}
+.ep-tab-pill{flex:1;min-width:120px;padding:9px 14px;border-radius:var(--r);border:none;background:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-soft);transition:all .18s;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;}
+.ep-tab-pill svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;}
+.ep-tab-pill.active{background:#fff;color:var(--forest);box-shadow:var(--shadow-sm);}
+.ep-tab-pill .ep-count{background:var(--sage);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;min-width:18px;}
+.ep-tab-pill.active .ep-count{background:var(--forest);}
+
+/* ── Staff table ── */
+.ep-staff-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);transition:background .12s;}
+.ep-staff-row:last-child{border-bottom:none;}
+.ep-staff-row:hover{background:var(--paler);}
+.ep-staff-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--forest-mid),var(--pine));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.ep-staff-info{flex:1;min-width:0;}
+.ep-staff-name{font-size:13px;font-weight:700;color:var(--ink);}
+.ep-staff-meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.ep-staff-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ── Role badge ── */
+.ep-role-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
+.ep-role-badge--principal{background:linear-gradient(135deg,var(--forest),var(--forest-mid));color:#fff;}
+.ep-role-badge--hod{background:var(--paler);color:var(--pine);border:1px solid var(--pale);}
+.ep-role-badge--teacher{background:var(--paper-dark);color:var(--ink-soft);border:1px solid var(--border-mid);}
+.ep-role-badge--admin{background:var(--gold-pale);color:var(--gold);border:1px solid rgba(196,146,42,.2);}
+.ep-role-badge--vp{background:var(--paler);color:var(--forest-mid);border:1px solid var(--pale);}
+
+/* ── Plan row for admin view ── */
+.ep-admin-plan-row{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--border);transition:background .12s;cursor:pointer;}
+.ep-admin-plan-row:last-child{border-bottom:none;}
+.ep-admin-plan-row:hover{background:var(--paler);}
+.ep-admin-plan-row__icon{width:36px;height:36px;background:var(--paler);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ep-admin-plan-row__icon svg{width:16px;height:16px;stroke:var(--pine);fill:none;stroke-width:2;stroke-linecap:round;}
+.ep-admin-plan-row__info{flex:1;min-width:0;}
+.ep-admin-plan-row__title{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ep-admin-plan-row__meta{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+
+/* ── Overview cards ── */
+.ep-overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;}
+.ep-overview-card{background:#fff;border-radius:var(--r-lg);border:1px solid var(--border);padding:20px 22px;box-shadow:var(--shadow-sm);}
+.ep-overview-card__label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);margin-bottom:8px;}
+.ep-overview-card__val{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--forest);line-height:1;}
+.ep-overview-card__sub{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+.ep-overview-card--green{border-left:3px solid var(--sage);}
+.ep-overview-card--gold{border-left:3px solid var(--gold);}
+.ep-overview-card--blue{border-left:3px solid #6a5acd;}
+.ep-overview-card--red{border-left:3px solid var(--danger);}
+
+/* ── Invite modal ── */
+.ep-invite-sent{display:none;text-align:center;padding:20px 0;}
+.ep-invite-sent svg{margin:0 auto 12px;display:block;}
+
+/* ── Credits bar ── */
+.ep-credits-summary{background:linear-gradient(135deg,var(--forest),var(--forest-mid));border-radius:var(--r-xl);padding:22px 28px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:24px;color:#fff;}
+.ep-credits-summary__val{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;line-height:1;}
+.ep-credits-summary__label{font-size:12px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.07em;}
+.ep-credits-summary__divider{width:1px;height:60px;background:rgba(255,255,255,.15);}
+.ep-credits-summary__info{flex:1;}
+.ep-credits-summary__info h3{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:4px;}
+.ep-credits-summary__info p{font-size:13px;color:rgba(255,255,255,.7);}
+
+/* ── Activity feed ── */
+.ep-activity-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.ep-activity-item:last-child{border-bottom:none;}
+.ep-activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.ep-activity-dot--green{background:var(--sage);}
+.ep-activity-dot--gold{background:var(--gold);}
+.ep-activity-dot--red{background:var(--danger);}
+.ep-activity-dot--gray{background:var(--ink-soft);}
+.ep-activity-text{flex:1;font-size:13px;color:var(--ink-mid);line-height:1.5;}
+.ep-activity-text strong{color:var(--ink);font-weight:600;}
+.ep-activity-time{font-size:11px;color:var(--ink-soft);flex-shrink:0;}
+
+@media(max-width:900px){
+  .ep-credits-summary__divider{display:none;}
+  .ep-tab-pill{min-width:80px;font-size:11px;padding:7px 8px;}
+}
+</style>
+</head>
+<body>
+
+<header class="ep-topbar">
+  <button class="ep-topbar__menu-btn" onclick="toggleSidebar()">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <a href="index.html" class="ep-topbar__brand">
+    <div class="ep-topbar__logo"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+    <span class="ep-topbar__name">EduPlan</span>
+  </a>
+  <div class="ep-topbar__actions">
+    <div class="ep-topbar__credits" onclick="window.location.href='topup.html'">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span id="topCredits">— credits</span>
+    </div>
+    <div class="ep-topbar__avatar" id="avatarBtn">?</div>
+  </div>
+</header>
+
+<div class="ep-layout">
+  <nav class="ep-sidebar" id="sidebar">
+    <div class="ep-sidebar__section">
+      <div class="ep-sidebar__label">Menu</div>
+      <a href="dashboard.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="generate.html"  class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Generate Plan</a>
+      <a href="submit.html"    class="ep-sidebar__link"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit Plan</a>
+      <a href="history.html"   class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>History</a>
+    </div>
+    <div class="ep-sidebar__section">
+      <div class="ep-sidebar__label">School</div>
+      <a href="review.html"  class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Plans</a>
+      <a href="admin.html"   class="ep-sidebar__link active"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>School Admin</a>
+    </div>
+    <div class="ep-sidebar__section">
+      <div class="ep-sidebar__label">Account</div>
+      <a href="topup.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Buy Credits</a>
+    </div>
+    <div class="ep-sidebar__footer">
+      <button class="ep-sidebar__link" onclick="doLogout()" style="color:rgba(255,255,255,.5);">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log out
+      </button>
+    </div>
+  </nav>
+
+  <main class="ep-main">
+    <div class="ep-page-header">
+      <div class="ep-page-header__eyebrow">School Administration</div>
+      <h1 id="schoolTitle">School Admin</h1>
+      <p id="schoolSubtitle">Manage your school's staff, plans, and credits from one place.</p>
+    </div>
+
+    <!-- Overview stats -->
+    <div class="ep-overview-grid" id="overviewGrid">
+      <div class="ep-overview-card ep-overview-card--green">
+        <div class="ep-overview-card__label">Total Staff</div>
+        <div class="ep-overview-card__val" id="statStaff">—</div>
+        <div class="ep-overview-card__sub">Registered teachers</div>
+      </div>
+      <div class="ep-overview-card ep-overview-card--gold">
+        <div class="ep-overview-card__label">Plans This Term</div>
+        <div class="ep-overview-card__val" id="statTermPlans">—</div>
+        <div class="ep-overview-card__sub">Across all staff</div>
+      </div>
+      <div class="ep-overview-card ep-overview-card--blue">
+        <div class="ep-overview-card__label">Approved Plans</div>
+        <div class="ep-overview-card__val" id="statApproved">—</div>
+        <div class="ep-overview-card__sub">This term</div>
+      </div>
+      <div class="ep-overview-card ep-overview-card--red">
+        <div class="ep-overview-card__label">Pending Review</div>
+        <div class="ep-overview-card__val" id="statPending">—</div>
+        <div class="ep-overview-card__sub"><a href="review.html" style="color:var(--danger);font-weight:600;font-size:12px;">Review now →</a></div>
+      </div>
+    </div>
+
+    <!-- Credits summary -->
+    <div class="ep-credits-summary">
+      <div>
+        <div class="ep-credits-summary__label">School Credits</div>
+        <div class="ep-credits-summary__val" id="schoolCredits">—</div>
+      </div>
+      <div class="ep-credits-summary__divider"></div>
+      <div class="ep-credits-summary__info">
+        <h3>Shared credit pool</h3>
+        <p>Credits are deducted each time any staff member generates a plan. Top up to keep the school generating.</p>
+      </div>
+      <a href="topup.html" class="ep-btn ep-btn--gold">
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Top up credits
+      </a>
+    </div>
+
+    <!-- Tabs -->
+    <div class="ep-tab-pills">
+      <button class="ep-tab-pill active" id="tabStaff"    onclick="setTab('staff')">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Staff
+        <span class="ep-count" id="cntStaff">0</span>
+      </button>
+      <button class="ep-tab-pill" id="tabPlans" onclick="setTab('plans')">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        All Plans
+        <span class="ep-count" id="cntPlans">0</span>
+      </button>
+      <button class="ep-tab-pill" id="tabActivity" onclick="setTab('activity')">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Activity
+      </button>
+      <button class="ep-tab-pill" id="tabSettings" onclick="setTab('settings')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </div>
+
+    <!-- STAFF TAB -->
+    <div id="panelStaff">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input class="ep-input" id="staffSearch" type="search" placeholder="Search staff…" oninput="filterStaff()" style="max-width:220px;"/>
+          <select class="ep-select" id="staffRoleFilter" onchange="filterStaff()" style="max-width:160px;">
+            <option value="">All Roles</option>
+            <option value="principal">Principal</option>
+            <option value="vp">Vice Principal</option>
+            <option value="hod">HOD</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button class="ep-btn ep-btn--primary ep-btn--sm" onclick="openInviteModal()">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Add Staff
+        </button>
+      </div>
+      <div class="ep-card">
+        <div id="staffList">
+          <div style="padding:40px;text-align:center;color:var(--ink-soft);font-style:italic;">Loading staff…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANS TAB -->
+    <div id="panelPlans" style="display:none;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <select class="ep-select" id="planTermFilter"    onchange="filterPlans()" style="max-width:160px;">
+          <option value="">All Terms</option>
+          <option>First Term</option>
+          <option>Second Term</option>
+          <option>Third Term</option>
+        </select>
+        <select class="ep-select" id="planStatusFilter"  onchange="filterPlans()" style="max-width:160px;">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="returned">Returned</option>
+        </select>
+        <input class="ep-input" id="planSearch" type="search" placeholder="Search by topic or teacher…" oninput="filterPlans()" style="max-width:240px;"/>
+      </div>
+      <div class="ep-card">
+        <div id="plansList">
+          <div style="padding:40px;text-align:center;color:var(--ink-soft);font-style:italic;">Loading plans…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY TAB -->
+    <div id="panelActivity" style="display:none;">
+      <div class="ep-card">
+        <div class="ep-card__head">
+          <div class="ep-card__icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <span class="ep-card__title">Recent School Activity</span>
+        </div>
+        <div class="ep-card__body" id="activityFeed">
+          <div style="color:var(--ink-soft);font-style:italic;font-size:14px;">Loading activity…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="panelSettings" style="display:none;">
+      <div class="ep-card" style="margin-bottom:20px;">
+        <div class="ep-card__head">
+          <div class="ep-card__icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+          <span class="ep-card__title">School Information</span>
+        </div>
+        <div class="ep-card__body">
+          <div class="ep-form-grid">
+            <div class="ep-form-group full">
+              <label>School Name</label>
+              <input class="ep-input" id="settSchoolName" type="text"/>
+            </div>
+            <div class="ep-form-group full">
+              <label>School Address</label>
+              <input class="ep-input" id="settSchoolAddress" type="text"/>
+            </div>
+            <div class="ep-form-group">
+              <label>State</label>
+              <input class="ep-input" id="settState" type="text"/>
+            </div>
+            <div class="ep-form-group">
+              <label>School Type</label>
+              <select class="ep-select" id="settSchoolType">
+                <option>Private</option>
+                <option>Public</option>
+                <option>Mission / Faith-based</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 24px 24px;">
+          <button class="ep-btn ep-btn--primary" onclick="saveSchoolSettings()">
+            <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Save Changes
+          </button>
+        </div>
+      </div>
+
+      <div class="ep-card">
+        <div class="ep-card__head">
+          <div class="ep-card__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
+          <span class="ep-card__title">My Account</span>
+        </div>
+        <div class="ep-card__body">
+          <div class="ep-form-grid">
+            <div class="ep-form-group">
+              <label>Full Name</label>
+              <input class="ep-input" id="settName" type="text"/>
+            </div>
+            <div class="ep-form-group">
+              <label>Phone</label>
+              <input class="ep-input" id="settPhone" type="tel"/>
+            </div>
+            <div class="ep-form-group full">
+              <label>Email</label>
+              <input class="ep-input" id="settEmail" type="email" disabled style="opacity:.6;cursor:not-allowed;"/>
+              <span class="ep-input-hint">Email cannot be changed here. Contact support.</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 24px 24px;">
+          <button class="ep-btn ep-btn--primary" onclick="saveAccountSettings()">
+            <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Invite Staff Modal -->
+<div class="ep-modal-overlay" id="inviteModal">
+  <div class="ep-modal">
+    <div class="ep-modal__head">
+      <h3>Add Staff Member</h3>
+      <button class="ep-modal__close" onclick="closeInviteModal()">×</button>
+    </div>
+    <div class="ep-modal__body" id="inviteBody">
+      <p style="font-size:14px;color:var(--ink-mid);margin-bottom:20px;">
+        Register a new staff member directly. They will receive their login details via email.
+      </p>
+      <div class="ep-form-grid">
+        <div class="ep-form-group">
+          <label>First Name <span class="req">*</span></label>
+          <input class="ep-input" id="invFirst" type="text"/>
+        </div>
+        <div class="ep-form-group">
+          <label>Last Name <span class="req">*</span></label>
+          <input class="ep-input" id="invLast" type="text"/>
+        </div>
+        <div class="ep-form-group full">
+          <label>Email Address <span class="req">*</span></label>
+          <input class="ep-input" id="invEmail" type="email"/>
+        </div>
+        <div class="ep-form-group">
+          <label>Role <span class="req">*</span></label>
+          <select class="ep-select" id="invRole">
+            <option value="teacher">Teacher</option>
+            <option value="hod">Head of Department (HOD)</option>
+            <option value="vp">Vice Principal</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="ep-form-group">
+          <label>Subject</label>
+          <input class="ep-input" id="invSubject" type="text"/>
+        </div>
+        <div class="ep-form-group full">
+          <label>Temporary Password <span class="req">*</span></label>
+          <input class="ep-input" id="invPassword" type="text" value="EduPlan2025!"/>
+          <span class="ep-input-hint">Staff member should change this after first login.</span>
+        </div>
+      </div>
+      <div id="inviteError" style="display:none;color:var(--danger);background:var(--danger-pale);border:1px solid rgba(179,48,48,.2);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-top:12px;"></div>
+    </div>
+    <div class="ep-modal__footer">
+      <button class="ep-btn ep-btn--ghost" onclick="closeInviteModal()">Cancel</button>
+      <button class="ep-btn ep-btn--primary" id="inviteBtn" onclick="addStaff()">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Add Staff Member
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Role Modal -->
+<div class="ep-modal-overlay" id="roleModal">
+  <div class="ep-modal">
+    <div class="ep-modal__head">
+      <h3>Change Staff Role</h3>
+      <button class="ep-modal__close" onclick="closeRoleModal()">×</button>
+    </div>
+    <div class="ep-modal__body">
+      <p style="font-size:14px;color:var(--ink-mid);margin-bottom:16px;">
+        Changing the role affects what this staff member can see and do in EduPlan.
+      </p>
+      <div class="ep-form-group">
+        <label>Staff Member</label>
+        <input class="ep-input" id="roleStaffName" type="text" disabled style="opacity:.7;"/>
+      </div>
+      <div class="ep-form-group" style="margin-top:12px;">
+        <label>New Role</label>
+        <select class="ep-select" id="roleSelect">
+          <option value="teacher">Teacher</option>
+          <option value="hod">Head of Department (HOD)</option>
+          <option value="vp">Vice Principal</option>
+          <option value="admin">Admin</option>
+          <option value="principal">Principal</option>
+        </select>
+      </div>
+    </div>
+    <div class="ep-modal__footer">
+      <button class="ep-btn ep-btn--ghost" onclick="closeRoleModal()">Cancel</button>
+      <button class="ep-btn ep-btn--primary" onclick="confirmRoleChange()">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/config.js"></script>
+<script>
+const sb = getSupabase();
+let user = Auth.get();
+let allStaff = [];
+let allPlans = [];
+let roleTargetId = null;
+let currentTab = "staff";
+
+// ── Init ─────────────────────────────────────────────────────────────
+(async () => {
+  await Auth.requireAuth();
+  user = Auth.get();
+
+  // Access control
+  if (user?.type !== "school" || !["principal","hod","admin"].includes(user?.role)) {
+    document.querySelector(".ep-main").innerHTML = `
+      <div style="padding:60px 20px;text-align:center;">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="var(--danger)" fill="none" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 16px;display:block;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <h2 style="font-family:'Playfair Display',serif;color:var(--forest);margin-bottom:8px;">Access Restricted</h2>
+        <p style="color:var(--ink-mid);margin-bottom:20px;">School Admin is only available to Principal, Admin, and HOD accounts.</p>
+        <a href="dashboard.html" class="ep-btn ep-btn--primary">Go to Dashboard</a>
+      </div>`;
+    return;
+  }
+
+  // Populate UI
+  document.getElementById("topCredits").textContent  = (user.credits||0) + " credits";
+  document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
+  document.getElementById("schoolTitle").textContent = user.school_name || "School Admin";
+  document.getElementById("schoolSubtitle").textContent = `${user.school_name || "Your school"} · ${user.state || ""} · Manage staff, plans and credits`;
+  document.getElementById("schoolCredits").textContent  = user.credits || 0;
+
+  // Populate settings fields
+  document.getElementById("settSchoolName").value    = user.school_name    || "";
+  document.getElementById("settSchoolAddress").value = user.school_address || "";
+  document.getElementById("settState").value         = user.state          || "";
+  document.getElementById("settSchoolType").value    = user.school_type    || "Private";
+  document.getElementById("settName").value          = user.name           || "";
+  document.getElementById("settPhone").value         = user.phone          || "";
+  document.getElementById("settEmail").value         = user.email          || "";
+
+  await loadAll();
+})();
+
+async function loadAll() {
+  await Promise.all([loadStaff(), loadPlans()]);
+  renderOverview();
+  renderActivity();
+}
+
+// ── Load staff ────────────────────────────────────────────────────────
+async function loadStaff() {
+  const { data } = await sb.from("profiles")
+    .select("*")
+    .eq("school_name", user.school_name)
+    .eq("type", "school")
+    .order("name");
+  allStaff = data || [];
+  document.getElementById("cntStaff").textContent = allStaff.length;
+  renderStaff(allStaff);
+}
+
+function renderStaff(list) {
+  const el = document.getElementById("staffList");
+  if (list.length === 0) {
+    el.innerHTML = `<div style="padding:48px;text-align:center;color:var(--ink-soft);">
+      <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 12px;display:block;opacity:.35;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+      <p>No staff members found.</p>
+      <button class="ep-btn ep-btn--primary ep-btn--sm" style="margin-top:12px;" onclick="openInviteModal()">Add first staff member</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = list.map(s => `
+    <div class="ep-staff-row">
+      <div class="ep-staff-avatar">${(s.name||"?")[0].toUpperCase()}</div>
+      <div class="ep-staff-info">
+        <div class="ep-staff-name">${esc(s.name||"")} ${s.id === user.id ? '<span style="font-size:10px;color:var(--sage);font-weight:600;">(you)</span>' : ""}</div>
+        <div class="ep-staff-meta">${esc(s.email||"")} · ${esc(s.subject||"No subject")} · Joined ${s.created_at ? new Date(s.created_at).toLocaleDateString("en-GB") : "—"}</div>
+      </div>
+      <span class="ep-role-badge ep-role-badge--${s.role||'teacher'}">${roleLabel(s.role)}</span>
+      ${s.id !== user.id ? `
+      <div class="ep-staff-actions">
+        <button class="ep-btn ep-btn--ghost ep-btn--sm" onclick="openRoleModal('${s.id}','${esc(s.name||"")}','${s.role||"teacher"}')">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Role
+        </button>
+        <button class="ep-btn ep-btn--danger ep-btn--sm" onclick="removeStaff('${s.id}','${esc(s.name||"")}')">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Remove
+        </button>
+      </div>` : ""}
+    </div>
+  `).join("");
+}
+
+function filterStaff() {
+  const search = document.getElementById("staffSearch").value.toLowerCase();
+  const role   = document.getElementById("staffRoleFilter").value;
+  let list = allStaff.filter(s => {
+    if (role && s.role !== role) return false;
+    if (search && !(s.name||"").toLowerCase().includes(search) && !(s.email||"").toLowerCase().includes(search)) return false;
+    return true;
+  });
+  renderStaff(list);
+}
+
+// ── Load plans ────────────────────────────────────────────────────────
+async function loadPlans() {
+  // Get all plans from staff in this school
+  const staffIds = allStaff.map(s => s.id);
+  if (staffIds.length === 0) { allPlans = []; document.getElementById("cntPlans").textContent = 0; return; }
+
+  const { data } = await sb.from("plans")
+    .select("*, profiles(name, role)")
+    .in("user_id", staffIds)
+    .order("saved_at", { ascending: false });
+
+  allPlans = data || [];
+  document.getElementById("cntPlans").textContent = allPlans.length;
+  renderPlans(allPlans);
+}
+
+function renderPlans(list) {
+  const el = document.getElementById("plansList");
+  if (list.length === 0) {
+    el.innerHTML = `<div style="padding:48px;text-align:center;color:var(--ink-soft);font-style:italic;font-size:14px;">No plans found.</div>`;
+    return;
+  }
+  el.innerHTML = list.map(p => `
+    <div class="ep-admin-plan-row">
+      <div class="ep-admin-plan-row__icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="ep-admin-plan-row__info">
+        <div class="ep-admin-plan-row__title">${esc(p.title||"Untitled Plan")}</div>
+        <div class="ep-admin-plan-row__meta">
+          ${esc(p.class||"")} · ${esc(p.subject||"")} · ${esc(p.term||"")}
+          · By <strong>${esc(p.profiles?.name||"Unknown")}</strong>
+          · ${p.saved_at ? new Date(p.saved_at).toLocaleDateString("en-GB") : ""}
+        </div>
+      </div>
+      <span class="ep-plan-status ep-plan-status--${p.status||'draft'}">${capitalize(p.status||'draft')}</span>
+    </div>
+  `).join("");
+}
+
+function filterPlans() {
+  const term   = document.getElementById("planTermFilter").value;
+  const status = document.getElementById("planStatusFilter").value;
+  const search = document.getElementById("planSearch").value.toLowerCase();
+  let list = allPlans.filter(p => {
+    if (term   && p.term   !== term)   return false;
+    if (status && (p.status||"draft") !== status) return false;
+    if (search && !(p.title||"").toLowerCase().includes(search) && !(p.profiles?.name||"").toLowerCase().includes(search)) return false;
+    return true;
+  });
+  renderPlans(list);
+}
+
+// ── Overview stats ────────────────────────────────────────────────────
+function renderOverview() {
+  document.getElementById("statStaff").textContent    = allStaff.length;
+  document.getElementById("statTermPlans").textContent = allPlans.length;
+  document.getElementById("statApproved").textContent = allPlans.filter(p => p.status === "approved").length;
+  document.getElementById("statPending").textContent  = allPlans.filter(p => p.status === "pending").length;
+}
+
+// ── Activity feed ─────────────────────────────────────────────────────
+function renderActivity() {
+  const feed = document.getElementById("activityFeed");
+  const events = [];
+
+  // Combine recent plans and submissions into an activity feed
+  allPlans.slice(0, 20).forEach(p => {
+    const name = p.profiles?.name || "A staff member";
+    const date = p.saved_at ? new Date(p.saved_at) : new Date();
+    if (p.status === "approved") {
+      events.push({ dot:"green",  text:`<strong>${esc(name)}</strong> had a plan approved — ${esc(p.subject||"")} ${esc(p.class||"")}`, date });
+    } else if (p.status === "pending") {
+      events.push({ dot:"gold",   text:`<strong>${esc(name)}</strong> submitted a plan for review — ${esc(p.subject||"")} ${esc(p.class||"")}`, date });
+    } else if (p.status === "returned") {
+      events.push({ dot:"red",    text:`<strong>${esc(name)}</strong>'s plan was returned for revision — ${esc(p.subject||"")}`, date });
+    } else {
+      events.push({ dot:"gray",   text:`<strong>${esc(name)}</strong> generated a plan — ${esc(p.subject||"")} ${esc(p.class||"")}`, date });
+    }
+  });
+
+  events.sort((a,b) => b.date - a.date);
+
+  if (events.length === 0) {
+    feed.innerHTML = '<p style="color:var(--ink-soft);font-size:13px;font-style:italic;">No activity yet.</p>';
+    return;
+  }
+
+  feed.innerHTML = events.slice(0, 15).map(e => `
+    <div class="ep-activity-item">
+      <div class="ep-activity-dot ep-activity-dot--${e.dot}"></div>
+      <div class="ep-activity-text">${e.text}</div>
+      <div class="ep-activity-time">${timeAgo(e.date)}</div>
+    </div>
+  `).join("");
+}
+
+// ── Add staff ─────────────────────────────────────────────────────────
+async function addStaff() {
+  const first    = document.getElementById("invFirst").value.trim();
+  const last     = document.getElementById("invLast").value.trim();
+  const email    = document.getElementById("invEmail").value.trim();
+  const role     = document.getElementById("invRole").value;
+  const subject  = document.getElementById("invSubject").value.trim();
+  const password = document.getElementById("invPassword").value.trim();
+  const errEl    = document.getElementById("inviteError");
+  const btn      = document.getElementById("inviteBtn");
+
+  errEl.style.display = "none";
+  if (!first||!last||!email||!password) { errEl.textContent = "Please fill in all required fields."; errEl.style.display="block"; return; }
+  if (!email.includes("@")) { errEl.textContent = "Enter a valid email address."; errEl.style.display="block"; return; }
+  if (password.length < 8)  { errEl.textContent = "Password must be at least 8 characters."; errEl.style.display="block"; return; }
+
+  btn.disabled = true;
+  btn.textContent = "Adding…";
+
+  // Sign up via Supabase Auth
+  const { data, error } = await sb.auth.signUp({
+    email, password,
+    options: {
+      data: {
+        name:           first + " " + last,
+        type:           "school",
+        role,
+        subject,
+        school_name:    user.school_name,
+        school_address: user.school_address || "",
+        state:          user.state          || "",
+        school_type:    user.school_type    || "",
+      }
+    }
+  });
+
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "Add Staff Member";
+    return;
+  }
+
+  // Update profile with full details
+  if (data.user) {
+    await sb.from("profiles").upsert({
+      id:             data.user.id,
+      name:           first + " " + last,
+      email,
+      type:           "school",
+      role,
+      subject,
+      school_name:    user.school_name,
+      school_address: user.school_address || "",
+      state:          user.state          || "",
+      school_type:    user.school_type    || "",
+      credits:        0,
+    });
+  }
+
+  closeInviteModal();
+  showToast(`${first} ${last} added successfully!`, "success");
+  await loadStaff();
+  renderOverview();
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Add Staff Member';
+}
+
+// ── Role management ───────────────────────────────────────────────────
+function openRoleModal(id, name, currentRole) {
+  roleTargetId = id;
+  document.getElementById("roleStaffName").value = name;
+  document.getElementById("roleSelect").value    = currentRole;
+  document.getElementById("roleModal").classList.add("open");
+}
+function closeRoleModal() { document.getElementById("roleModal").classList.remove("open"); roleTargetId = null; }
+
+async function confirmRoleChange() {
+  if (!roleTargetId) return;
+  const newRole = document.getElementById("roleSelect").value;
+  await sb.from("profiles").update({ role: newRole }).eq("id", roleTargetId);
+  closeRoleModal();
+  showToast("Role updated.", "success");
+  await loadStaff();
+}
+
+async function removeStaff(id, name) {
+  if (!confirm(`Remove ${name} from ${user.school_name}? They will lose access to the school account.`)) return;
+  // Update their profile — remove school association
+  await sb.from("profiles").update({ school_name: null, type: "individual" }).eq("id", id);
+  showToast(`${name} removed from school.`, "info");
+  await loadStaff();
+  renderOverview();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────
+async function saveSchoolSettings() {
+  const updates = {
+    school_name:    document.getElementById("settSchoolName").value.trim(),
+    school_address: document.getElementById("settSchoolAddress").value.trim(),
+    state:          document.getElementById("settState").value.trim(),
+    school_type:    document.getElementById("settSchoolType").value,
+  };
+  const { error } = await sb.from("profiles").update(updates).eq("id", user.id);
+  if (error) { showToast("Save failed: " + error.message, "error"); return; }
+  Object.assign(user, updates);
+  Auth.set(user);
+  document.getElementById("schoolTitle").textContent = user.school_name || "School Admin";
+  showToast("School settings saved.", "success");
+}
+
+async function saveAccountSettings() {
+  const updates = {
+    name:  document.getElementById("settName").value.trim(),
+    phone: document.getElementById("settPhone").value.trim(),
+  };
+  const { error } = await sb.from("profiles").update(updates).eq("id", user.id);
+  if (error) { showToast("Save failed: " + error.message, "error"); return; }
+  Object.assign(user, updates);
+  Auth.set(user);
+  showToast("Account settings saved.", "success");
+}
+
+// ── Modals ────────────────────────────────────────────────────────────
+function openInviteModal() {
+  document.getElementById("invFirst").value    = "";
+  document.getElementById("invLast").value     = "";
+  document.getElementById("invEmail").value    = "";
+  document.getElementById("invSubject").value  = "";
+  document.getElementById("invPassword").value = "EduPlan2025!";
+  document.getElementById("inviteError").style.display = "none";
+  document.getElementById("inviteModal").classList.add("open");
+}
+function closeInviteModal() { document.getElementById("inviteModal").classList.remove("open"); }
+
+document.getElementById("inviteModal").addEventListener("click", e => { if(e.target===e.currentTarget) closeInviteModal(); });
+document.getElementById("roleModal").addEventListener("click",   e => { if(e.target===e.currentTarget) closeRoleModal(); });
+
+// ── Tabs ──────────────────────────────────────────────────────────────
+function setTab(tab) {
+  currentTab = tab;
+  ["staff","plans","activity","settings"].forEach(t => {
+    document.getElementById("tab" + capitalize(t)).classList.toggle("active", t === tab);
+    document.getElementById("panel" + capitalize(t)).style.display = t === tab ? "" : "none";
+  });
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────
+function roleLabel(role) {
+  const map = { principal:"Principal", vp:"Vice Principal", hod:"HOD", teacher:"Teacher", admin:"Admin" };
+  return map[role] || capitalize(role||"teacher");
+}
+
+function timeAgo(date) {
+  const diff = Date.now() - new Date(date).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return new Date(date).toLocaleDateString("en-GB");
+}
+
+function esc(s)       { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
+async function doLogout(){ await sb.auth.signOut(); Auth.clear(); window.location.href = "login.html"; }
+</script>
+</body>
+</html>

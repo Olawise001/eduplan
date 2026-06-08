@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EduPlan — AI Lesson Planning for Nigerian Teachers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/style.css"/>
+<style>
+/* Landing-only extras */
+.ep-land-nav__cta { display:flex; gap:10px; }
+.ep-how { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0; }
+.ep-how-step { padding:36px 32px; position:relative; }
+.ep-how-step:not(:last-child)::after { content:''; position:absolute; right:0; top:50%; transform:translateY(-50%); width:1px; height:60%; background:var(--border); }
+.ep-how-step__num { font-family:'Playfair Display',serif; font-size:48px; font-weight:700; color:var(--pale); line-height:1; margin-bottom:14px; }
+.ep-how-step h3 { font-size:16px; font-weight:700; color:var(--ink); margin-bottom:6px; }
+.ep-how-step p  { font-size:13px; color:var(--ink-soft); line-height:1.6; }
+.ep-topup-list { list-style:none; display:flex; flex-direction:column; gap:10px; margin-top:20px; }
+.ep-topup-list li { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#fff; border-radius:var(--r); border:1px solid var(--border); }
+.ep-topup-list li span:last-child { font-weight:700; color:var(--sage); }
+.ep-footer { background:var(--forest); color:rgba(255,255,255,.6); padding:40px; text-align:center; font-size:13px; }
+.ep-footer a { color:rgba(255,255,255,.8); margin:0 8px; }
+@media(max-width:900px){.ep-how-step:not(:last-child)::after{display:none;}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="ep-land-nav" id="landNav">
+  <a href="index.html" class="ep-topbar__brand">
+    <div class="ep-topbar__logo">
+      <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    </div>
+    <span class="ep-topbar__name">EduPlan</span>
+  </a>
+  <div class="ep-land-nav__links">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <div class="ep-land-nav__cta">
+    <a href="login.html"    class="ep-btn ep-btn--ghost ep-btn--sm" style="color:#fff;border-color:rgba(255,255,255,.3);">Log in</a>
+    <a href="register.html" class="ep-btn ep-btn--gold  ep-btn--sm">Get started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="ep-hero">
+  <div class="ep-hero__content">
+    <div class="ep-hero__eyebrow">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="6"/></svg>
+      New NERDC 2025 Scheme · JSS1–SS3
+    </div>
+    <h1>Lesson plans that write<br><em>themselves.</em></h1>
+    <p class="ep-hero__sub">EduPlan uses AI and the approved Nigerian curriculum to generate complete, submission-ready lesson plans in seconds — for individuals and schools.</p>
+    <div class="ep-hero__actions">
+      <a href="register.html" class="ep-btn ep-btn--gold ep-btn--lg">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Create free account
+      </a>
+      <a href="#how" class="ep-btn ep-btn--ghost ep-btn--lg" style="color:#fff;border-color:rgba(255,255,255,.3);">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        See how it works
+      </a>
+    </div>
+    <div class="ep-hero__stats">
+      <div class="ep-hero__stat"><strong>428</strong><span>Pages of scheme data</span></div>
+      <div class="ep-hero__stat"><strong>JSS1–SS3</strong><span>All classes covered</span></div>
+      <div class="ep-hero__stat"><strong>5 secs</strong><span>Average plan generation</span></div>
+      <div class="ep-hero__stat"><strong>₦1,000</strong><span>For 100 credits</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="ep-section" id="features">
+  <div class="ep-section__inner">
+    <div class="ep-section__label">Why EduPlan</div>
+    <h2 class="ep-section__title">Everything a Nigerian teacher needs</h2>
+    <p class="ep-section__sub">Built around the 2025 NERDC curriculum. From a single teacher to an entire school network.</p>
+    <div class="ep-features">
+      <div class="ep-feature-card">
+        <div class="ep-feature-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <h3>Curriculum-aligned</h3>
+        <p>Scheme of work data for every subject, term, and week — JSS1 through SS3 — loaded in automatically.</p>
+      </div>
+      <div class="ep-feature-card">
+        <div class="ep-feature-card__icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Generate in seconds</h3>
+        <p>Select class, term, subject and topic — AI fills in objectives, presentation steps, evaluation, and more.</p>
+      </div>
+      <div class="ep-feature-card">
+        <div class="ep-feature-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>School workflow</h3>
+        <p>Teachers submit plans to HOD, who forwards to the Principal. Full review and approval chain built in.</p>
+      </div>
+      <div class="ep-feature-card">
+        <div class="ep-feature-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        </div>
+        <h3>PDF &amp; Word export</h3>
+        <p>Download your plan as a properly formatted PDF or Word document — ready for submission or printing.</p>
+      </div>
+      <div class="ep-feature-card">
+        <div class="ep-feature-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        </div>
+        <h3>Offline mode</h3>
+        <p>No internet? Use pre-loaded subject templates and fill in your plan manually — works anywhere.</p>
+      </div>
+      <div class="ep-feature-card">
+        <div class="ep-feature-card__icon">
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <h3>Simple credit system</h3>
+        <p>₦1,000 buys 100 credits. Each generation costs 5 credits. Top up anytime via Flutterwave.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="ep-section ep-section--alt" id="how">
+  <div class="ep-section__inner">
+    <div class="ep-section__label">How it works</div>
+    <h2 class="ep-section__title">From sign-up to lesson plan in minutes</h2>
+    <div class="ep-card" style="margin-top:32px;">
+      <div class="ep-how">
+        <div class="ep-how-step">
+          <div class="ep-how-step__num">01</div>
+          <h3>Create your account</h3>
+          <p>Register as an individual teacher or as a school. School accounts get a review workflow.</p>
+        </div>
+        <div class="ep-how-step">
+          <div class="ep-how-step__num">02</div>
+          <h3>Top up credits</h3>
+          <p>Buy credit packs via Flutterwave. ₦1,000 = 100 credits. One generation = 5 credits.</p>
+        </div>
+        <div class="ep-how-step">
+          <div class="ep-how-step__num">03</div>
+          <h3>Select &amp; generate</h3>
+          <p>Choose your class, term, subject and week. AI pulls the scheme and writes the full plan.</p>
+        </div>
+        <div class="ep-how-step">
+          <div class="ep-how-step__num">04</div>
+          <h3>Submit or download</h3>
+          <p>Individuals download instantly. School teachers submit to their HOD for approval.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="ep-section" id="pricing">
+  <div class="ep-section__inner">
+    <div class="ep-section__label">Pricing</div>
+    <h2 class="ep-section__title">Simple, credit-based pricing</h2>
+    <p class="ep-section__sub">No subscriptions. Buy credits when you need them. Schools get a shared pool.</p>
+    <div class="ep-pricing-grid">
+
+      <!-- Individual -->
+      <div class="ep-pricing-card">
+        <div class="ep-pricing-card__icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+        </div>
+        <h3>Individual</h3>
+        <div class="ep-pricing-card__price">Pay per credit — no monthly fee</div>
+        <ul class="ep-pricing-card__features">
+          <li>Generate lesson plans with AI</li>
+          <li>Full scheme of work access (JSS1–SS3)</li>
+          <li>Download PDF &amp; Word files</li>
+          <li>View &amp; review past plans</li>
+          <li>Offline manual templates</li>
+          <li>5 credits per generation</li>
+        </ul>
+        <a href="register.html?type=individual" class="ep-btn ep-btn--secondary ep-btn--full">Get started free</a>
+      </div>
+
+      <!-- Credit packs -->
+      <div class="ep-pricing-card ep-pricing-card--featured">
+        <div class="ep-pricing-card__icon">
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <h3>Credit Packs</h3>
+        <div class="ep-pricing-card__price">Top up anytime, never expires</div>
+        <ul class="ep-topup-list">
+          <li><span>100 credits <small style="color:var(--ink-soft);">(20 plans)</small></span><span>₦1,000</span></li>
+          <li><span>320 credits <small style="color:var(--ink-soft);">(64 plans)</small></span><span>₦3,000</span></li>
+          <li><span>600 credits <small style="color:var(--ink-soft);">(120 plans)</small></span><span>₦5,000</span></li>
+          <li><span>1,300 credits <small style="color:var(--ink-soft);">(260 plans)</small></span><span>₦10,000</span></li>
+        </ul>
+        <a href="register.html" class="ep-btn ep-btn--primary ep-btn--full" style="margin-top:16px;">Buy credits</a>
+      </div>
+
+      <!-- School -->
+      <div class="ep-pricing-card">
+        <div class="ep-pricing-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <h3>School</h3>
+        <div class="ep-pricing-card__price"><strong>₦15,000</strong> / term · 2,000 credits</div>
+        <ul class="ep-pricing-card__features">
+          <li>Everything in Individual</li>
+          <li>Shared school credit pool</li>
+          <li>Teacher → HOD → Principal submit chain</li>
+          <li>Plan review &amp; approval workflow</li>
+          <li>Term-end work history for review</li>
+          <li>Unlimited staff accounts</li>
+          <li>School admin dashboard</li>
+        </ul>
+        <a href="register.html?type=school" class="ep-btn ep-btn--primary ep-btn--full">Register your school</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="ep-footer">
+  <p>© 2025 EduPlan · AI-Powered Lesson Planning for Nigerian Teachers</p>
+  <p style="margin-top:8px;">
+    <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Support</a>
+  </p>
+</footer>
+
+<script>
+// Sticky nav
+const nav = document.getElementById("landNav");
+window.addEventListener("scroll", () => {
+  nav.classList.toggle("scrolled", window.scrollY > 40);
+});
+// Pre-select type from URL
+const params = new URLSearchParams(location.search);
+</script>
+</body>
+</html>
