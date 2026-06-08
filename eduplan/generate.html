@@ -571,13 +571,6 @@ async function generate() {
     return;
   }
 
-  const apiKey = localStorage.getItem("lesson-plan-api-key") || "";
-  if (!apiKey) {
-    errEl.innerHTML = 'No API key found. <a href="#" onclick="openKeyModal();return false;" style="color:var(--sage);font-weight:600;">Enter your Anthropic API key</a> to enable AI generation, or use the Offline mode.';
-    errEl.style.display = "block";
-    return;
-  }
-
   const btn = document.getElementById("genBtn");
   btn.disabled = true;
   btn.innerHTML = '<span class="ep-spin"></span> <span class="dots">Generating</span>';
@@ -677,41 +670,47 @@ Instructional materials (user provided): ${v.materials||"Not specified"}
 Additional notes: ${v.notes||"None"}`;
 
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
-      body: JSON.stringify({
-        model: EDUPLAN_CONFIG.CLAUDE_MODEL,
-        max_tokens: 2000,
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
+    // ── Call Supabase Edge Function (API key is server-side) ──────
+    const { data: { session } } = await getSupabase().auth.getSession();
+    const authToken = session?.access_token || "";
+
+    const resp = await fetch(
+      `${EDUPLAN_CONFIG.SUPABASE_URL}/functions/v1/generate-plan`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${authToken}`,
+          "apikey":        EDUPLAN_CONFIG.SUPABASE_ANON,
+        },
+        body: JSON.stringify({
+          prompt,
+          model:      EDUPLAN_CONFIG.CLAUDE_MODEL,
+          max_tokens: 2000,
+        }),
+      }
+    );
 
     if (!resp.ok) {
-      const e = await resp.json().catch(()=>({}));
-      throw new Error(e?.error?.message || `HTTP ${resp.status}`);
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(e?.error || `Server error ${resp.status}`);
     }
 
     const result = await resp.json();
-    const raw    = (result.content||[]).map(i=>i.text||"").join("").trim();
-    let cleaned  = raw.replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/\s*```$/,"");
+    const raw    = (result.content || []).map(i => i.text || "").join("").trim();
+    let cleaned  = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/, "");
     const fb = cleaned.indexOf("{"), lb = cleaned.lastIndexOf("}");
-    if (fb!==-1 && lb!==-1) cleaned = cleaned.slice(fb,lb+1);
+    if (fb !== -1 && lb !== -1) cleaned = cleaned.slice(fb, lb + 1);
     const data = JSON.parse(cleaned);
 
     // Deduct credits via Supabase
     await Auth.deductCredits(EDUPLAN_CONFIG.CREDITS_PER_GENERATION);
-    document.getElementById("topCredits").textContent = Auth.credits() + " credits";
+    document.getElementById("topCredits").textContent  = Auth.credits() + " credits";
     document.getElementById("creditsNote").textContent = Auth.credits();
 
     renderPlan(v, data);
-  } catch(e) {
-    body.innerHTML = `<div style="color:var(--danger);font-size:14px;padding:8px 0;">Generation failed: ${esc(e.message)}<br><br>Check your API key or try again.</div>`;
+  } catch (e) {
+    body.innerHTML = `<div style="color:var(--danger);font-size:14px;padding:8px 0;">Generation failed: ${esc(e.message)}<br><br>Please try again.</div>`;
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Generate with AI (5 credits)';
