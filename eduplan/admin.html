@@ -440,37 +440,27 @@ let currentTab = "staff";
 (async () => {
   try {
     const sb2 = getSupabase();
-
-    // Get session directly
     const { data: { session } } = await sb2.auth.getSession();
 
     if (session) {
-      // Fetch profile directly from Supabase — bypass localStorage entirely
-      const { data: freshProfile, error } = await sb2
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (error || !freshProfile) {
-        // Profile not found — create it
-        const meta = session.user.user_metadata || {};
-        const newProfile = {
-          id:      session.user.id,
-          name:    meta.name  || session.user.email.split("@")[0],
-          email:   session.user.email,
-          type:    meta.type  || "individual",
-          role:    meta.role  || "teacher",
-          credits: 0,
-        };
-        await sb2.from("profiles").insert(newProfile);
-        user = newProfile;
-      } else {
-        user = freshProfile;
+      // Try to fetch fresh profile — fall back to cache if network fails
+      try {
+        const { data: freshProfile } = await sb2
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+        if (freshProfile) {
+          user = freshProfile;
+          Auth.set(user);
+        } else {
+          user = Auth.get() || { id: session.user.id, email: session.user.email, type: session.user.user_metadata?.type || "individual", role: session.user.user_metadata?.role || "teacher", credits: 0 };
+        }
+      } catch (fetchErr) {
+        console.warn("Profile fetch failed, using cache:", fetchErr.message);
+        user = Auth.get() || { id: session.user.id, email: session.user.email, type: session.user.user_metadata?.type || "individual", role: session.user.user_metadata?.role || "teacher", credits: 0 };
       }
-      Auth.set(user);
     } else {
-      // No session — use localStorage only for demo mode
       user = Auth.get();
       if (!user) { window.location.href = "login.html"; return; }
     }
