@@ -150,7 +150,7 @@ document.getElementById("forgotLink").addEventListener("click", async e => {
     return;
   }
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: `${location.origin}/reset-password.html`
+    redirectTo: "https://plan.wisestudy.com.ng/login.html"
   });
   infoEl.textContent = error
     ? error.message
