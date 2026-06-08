@@ -438,8 +438,17 @@ let currentTab = "staff";
 
 // ── Init ─────────────────────────────────────────────────────────────
 (async () => {
-  await Auth.requireAuth();
-  user = Auth.get();
+  // Get session
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session) {
+    // Real Supabase session — fetch fresh profile
+    user = await Auth.refreshProfile(session.user.id);
+  } else {
+    // No session — check localStorage (demo mode or cached login)
+    user = Auth.get();
+    if (!user) { window.location.href = "login.html"; return; }
+  }
 
   // Access control
   if (user?.type !== "school" || !["principal","hod","admin"].includes(user?.role)) {
