@@ -203,44 +203,67 @@
 <script src="assets/config.js"></script>
 <script>
 const sb = getSupabase();
-let user = Auth.get(); // cached
 
+// ── selectedPkg must be at module scope so all functions can access it ──
+let selectedPkg = null;
+let user = Auth.get();
+
+// ── Auth init — runs async, doesn't block UI ──────────────────────────
 (async () => {
   await Auth.requireAuth();
   user = Auth.get();
-document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
-document.getElementById("heroBalance").textContent = (user.credits||0);
-document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
-
-let selectedPkg = null;
-
-// Render packages
-const grid = document.getElementById("pkgGrid");
-EDUPLAN_CONFIG.TOPUP_PACKAGES.forEach((pkg, i) => {
-  const plansQty = Math.floor(pkg.credits / EDUPLAN_CONFIG.CREDITS_PER_GENERATION);
-  const perPlan  = (pkg.naira / plansQty).toFixed(0);
-  const popular  = i === 2; // Pro = most popular
-  const card = document.createElement("div");
-  card.className = "ep-pkg-card" + (popular ? " ep-pkg-card--popular" : "");
-  card.innerHTML = `
-    <div class="ep-pkg-card__name">${pkg.label}</div>
-    <div class="ep-pkg-card__credits">${pkg.credits}</div>
-    <div class="ep-pkg-card__label">credits</div>
-    <div class="ep-pkg-card__price">₦${pkg.naira.toLocaleString("en-NG")}</div>
-    <div class="ep-pkg-card__plans">${plansQty} lesson plans</div>
-    <div class="ep-pkg-card__perplan">₦${perPlan} per plan</div>
-  `;
-  card.addEventListener("click", () => selectPkg(pkg, card));
-  grid.appendChild(card);
-});
-
+  if (!user) return;
+  const credits = user.credits || 0;
+  document.getElementById("topCredits").textContent  = credits + " credits";
+  document.getElementById("heroBalance").textContent = credits;
+  document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
+  renderTxHistory();
+  // Show API key banner if missing
+  if (!localStorage.getItem("lesson-plan-api-key")) {
+    const note = document.createElement("div");
+    note.style.cssText = "background:var(--gold-pale);border:1px solid rgba(196,146,42,.2);border-radius:var(--r-lg);padding:14px 16px;margin-top:28px;display:flex;align-items:center;gap:12px;";
+    note.innerHTML = `
+      <svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--gold)" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div style="flex:1;">
+        <strong style="font-size:13px;color:var(--gold);">Anthropic API key not set</strong>
+        <p style="font-size:12px;color:var(--ink-mid);margin-top:2px;">You need an API key to generate plans with AI. You can still use Offline mode without one.</p>
+      </div>
+      <button class="ep-btn ep-btn--gold ep-btn--sm" onclick="openKeyModal()">Set API Key</button>
+    `;
+    document.querySelector(".ep-main").appendChild(note);
+  }
 })();
 
+// ── Render packages immediately (no auth needed) ──────────────────────
+(function renderPackages() {
+  const grid = document.getElementById("pkgGrid");
+  if (!grid) return;
+  EDUPLAN_CONFIG.TOPUP_PACKAGES.forEach((pkg, i) => {
+    const plansQty = Math.floor(pkg.credits / EDUPLAN_CONFIG.CREDITS_PER_GENERATION);
+    const perPlan  = (pkg.naira / plansQty).toFixed(0);
+    const popular  = i === 2;
+    const card = document.createElement("div");
+    card.className = "ep-pkg-card" + (popular ? " ep-pkg-card--popular" : "");
+    card.innerHTML = `
+      <div class="ep-pkg-card__name">${pkg.label}</div>
+      <div class="ep-pkg-card__credits">${pkg.credits}</div>
+      <div class="ep-pkg-card__label">credits</div>
+      <div class="ep-pkg-card__price">₦${pkg.naira.toLocaleString("en-NG")}</div>
+      <div class="ep-pkg-card__plans">${plansQty} lesson plans</div>
+      <div class="ep-pkg-card__perplan">₦${perPlan} per plan</div>
+    `;
+    card.addEventListener("click", () => selectPkg(pkg, card));
+    grid.appendChild(card);
+  });
+})();
+
+// ── Select package ────────────────────────────────────────────────────
 function selectPkg(pkg, el) {
   selectedPkg = pkg;
   document.querySelectorAll(".ep-pkg-card").forEach(c => c.classList.remove("selected"));
   el.classList.add("selected");
   const plansQty = Math.floor(pkg.credits / EDUPLAN_CONFIG.CREDITS_PER_GENERATION);
+  const currentCredits = Auth.credits();
   document.getElementById("orderSummary").innerHTML = `
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div style="display:flex;justify-content:space-between;font-size:14px;">
@@ -253,12 +276,12 @@ function selectPkg(pkg, el) {
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;">
         <span style="color:var(--ink-soft);">Current balance</span>
-        <span style="font-weight:600;">${user.credits||0} credits</span>
+        <span style="font-weight:600;">${currentCredits} credits</span>
       </div>
       <div style="height:1px;background:var(--border);"></div>
       <div style="display:flex;justify-content:space-between;font-size:15px;">
         <span style="font-weight:700;">After top-up</span>
-        <span style="font-weight:700;color:var(--pine);">${(user.credits||0)+pkg.credits} credits</span>
+        <span style="font-weight:700;color:var(--pine);">${currentCredits + pkg.credits} credits</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:18px;padding-top:6px;border-top:2px solid var(--border-mid);">
         <span style="font-weight:700;">Total</span>
@@ -269,34 +292,38 @@ function selectPkg(pkg, el) {
   document.getElementById("payBtn").disabled = false;
 }
 
+// ── Handle payment ────────────────────────────────────────────────────
 function handlePayment() {
-  if (!selectedPkg) return;
+  if (!selectedPkg) { showToast("Please select a credit package first.", "warning"); return; }
+  user = Auth.get();
+  if (!user) { window.location.href = "login.html"; return; }
 
   const fwKey = EDUPLAN_CONFIG.FLUTTERWAVE_PUBLIC;
-  if (fwKey === "YOUR_FLUTTERWAVE_PUBLIC_KEY") {
-    // ── PLACEHOLDER MODE — simulate successful payment ──────────
-    const ok = confirm(`[DEMO MODE]\n\nFlutterwave is not configured yet.\n\nSimulate successful payment of ₦${selectedPkg.naira.toLocaleString()} for ${selectedPkg.credits} credits?`);
-    if (ok) onPaymentSuccess({ transaction_id: "demo_" + Date.now(), tx_ref: "ep_demo_" + Date.now() });
+
+  if (!fwKey || fwKey === "YOUR_FLUTTERWAVE_PUBLIC_KEY") {
+    // Demo mode — simulate payment
+    const ok = confirm(`[DEMO MODE]
+
+Flutterwave key not configured yet.
+
+Simulate successful payment of ₦${selectedPkg.naira.toLocaleString()} for ${selectedPkg.credits} credits?`);
+    if (ok) onPaymentSuccess({ transaction_id: "demo_" + Date.now(), tx_ref: "ep_demo_" + Date.now(), status: "successful" });
     return;
   }
 
-  // ── REAL FLUTTERWAVE PAYMENT ─────────────────────────────────
-  // TODO Phase 2: Generate tx_ref server-side via Supabase Edge Function
-  // and verify payment server-side after callback.
-
   FlutterwaveCheckout({
-    public_key:   fwKey,
-    tx_ref:       "ep_" + Date.now() + "_" + Math.floor(Math.random() * 1e6),
-    amount:       selectedPkg.naira,
-    currency:     "NGN",
+    public_key:      fwKey,
+    tx_ref:          "ep_" + Date.now() + "_" + Math.floor(Math.random() * 1e6),
+    amount:          selectedPkg.naira,
+    currency:        "NGN",
     payment_options: "card,banktransfer,ussd",
     customer: {
-      email:       user.email,
-      name:        user.name || "EduPlan User",
+      email: user.email,
+      name:  user.name || "EduPlan User",
     },
     meta: {
-      credits:     selectedPkg.credits,
-      user_email:  user.email,
+      credits:    selectedPkg.credits,
+      user_email: user.email,
     },
     customizations: {
       title:       "EduPlan Credits",
@@ -307,15 +334,15 @@ function handlePayment() {
       if (response.status === "successful" || response.status === "completed") {
         onPaymentSuccess(response);
       } else {
-        showToast("Payment was not completed.", "error");
+        showToast("Payment was not completed. Please try again.", "error");
       }
     },
     onclose: () => showToast("Payment window closed.", "info"),
   });
 }
 
-function onPaymentSuccess(response) {
-  // Add credits via Supabase (also logs the transaction)
+// ── After successful payment ──────────────────────────────────────────
+async function onPaymentSuccess(response) {
   await Auth.addCredits(
     selectedPkg.credits,
     selectedPkg.naira,
@@ -324,41 +351,45 @@ function onPaymentSuccess(response) {
   );
   const newCredits = Auth.credits();
 
-  // Phase 2: verify payment server-side via Supabase Edge Function:
-  // await sb.functions.invoke('verify-payment', { body: { transaction_id: response.transaction_id, expected_credits: selectedPkg.credits } });
-
   // Update UI
   document.getElementById("heroBalance").textContent = newCredits;
   document.getElementById("topCredits").textContent  = newCredits + " credits";
   renderTxHistory();
-
   showToast(`${selectedPkg.credits} credits added! New balance: ${newCredits}`, "success", 5000);
 
-  // Deselect package
+  // Reset selection
   document.querySelectorAll(".ep-pkg-card").forEach(c => c.classList.remove("selected"));
   document.getElementById("orderSummary").innerHTML = '<p style="color:var(--ink-soft);font-size:14px;font-style:italic;">Select a package to continue.</p>';
   document.getElementById("payBtn").disabled = true;
   selectedPkg = null;
 }
 
+// ── Transaction history ───────────────────────────────────────────────
 async function renderTxHistory() {
+  const el = document.getElementById("txHistory");
   let all = [];
-  if (user.id && user.id !== "demo") {
+  user = Auth.get();
+  if (user?.id && user.id !== "demo") {
     const { data } = await sb.from("transactions")
       .select("*").eq("user_id", user.id)
       .order("created_at", { ascending: false }).limit(30);
-    all = (data||[]).map(t => ({
-      type: t.type, label: t.label, amount: t.amount, naira: t.naira,
-      ref: t.reference, date: new Date(t.created_at).toLocaleDateString("en-GB")
+    all = (data || []).map(t => ({
+      type:  t.type,
+      label: t.label,
+      amount: t.amount,
+      ref:   t.reference,
+      date:  new Date(t.created_at).toLocaleDateString("en-GB"),
     }));
   } else {
-    const txns = JSON.parse(localStorage.getItem("eduplan_txns")||"[]");
-    const plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-    const deductions = plans.map(p => ({ type:"debit", label:"Generated: "+(p.title||"Lesson Plan"), amount:EDUPLAN_CONFIG.CREDITS_PER_GENERATION, date:p.savedAt||"" }));
-    all = [...txns, ...deductions].sort((a,b)=>b.date>a.date?1:-1).slice(0,20);
+    const txns  = JSON.parse(localStorage.getItem("eduplan_txns") || "[]");
+    const plans = JSON.parse(localStorage.getItem("eduplan_plans") || "[]");
+    const deductions = plans.map(p => ({
+      type: "debit", label: "Generated: " + (p.title || "Lesson Plan"),
+      amount: EDUPLAN_CONFIG.CREDITS_PER_GENERATION, date: p.savedAt || ""
+    }));
+    all = [...txns, ...deductions].sort((a, b) => b.date > a.date ? 1 : -1).slice(0, 20);
   }
 
-  const el = document.getElementById("txHistory");
   if (all.length === 0) {
     el.innerHTML = '<p style="color:var(--ink-soft);font-size:13px;font-style:italic;">No transactions yet.</p>';
     return;
@@ -367,24 +398,24 @@ async function renderTxHistory() {
     <div class="ep-transaction-row">
       <div class="ep-transaction-row__icon ${tx.type}">
         <svg viewBox="0 0 24 24">
-          ${tx.type==="credit"
+          ${tx.type === "credit"
             ? '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>'
             : '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>'}
         </svg>
       </div>
       <div class="ep-transaction-row__info">
         <div class="ep-transaction-row__title">${esc(tx.label)}</div>
-        <div class="ep-transaction-row__date">${esc(tx.date)}${tx.ref?" · Ref: "+esc(tx.ref):""}</div>
+        <div class="ep-transaction-row__date">${esc(tx.date)}${tx.ref ? " · Ref: " + esc(tx.ref) : ""}</div>
       </div>
       <div class="ep-transaction-row__amount ${tx.type}">
-        ${tx.type==="credit"?"+":"−"}${tx.amount} cr
+        ${tx.type === "credit" ? "+" : "−"}${tx.amount} cr
       </div>
     </div>
   `).join("");
 }
 
-// API Key modal (quick access from generate page)
-function openKeyModal()  { document.getElementById("keyModal").classList.add("open"); document.getElementById("apiKeyInput").value = localStorage.getItem("lesson-plan-api-key")||""; }
+// ── API Key modal ─────────────────────────────────────────────────────
+function openKeyModal()  { document.getElementById("keyModal").classList.add("open"); document.getElementById("apiKeyInput").value = localStorage.getItem("lesson-plan-api-key") || ""; }
 function closeKeyModal() { document.getElementById("keyModal").classList.remove("open"); }
 function saveApiKey() {
   const key = document.getElementById("apiKeyInput").value.trim();
@@ -393,27 +424,10 @@ function saveApiKey() {
   closeKeyModal();
   showToast("API key saved.", "success");
 }
-document.getElementById("keyModal").addEventListener("click", e => { if(e.target===e.currentTarget) closeKeyModal(); });
+document.getElementById("keyModal").addEventListener("click", e => { if (e.target === e.currentTarget) closeKeyModal(); });
 
-function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
-
-renderTxHistory();
-
-// Show API key link if no key stored
-if (!localStorage.getItem("lesson-plan-api-key")) {
-  const note = document.createElement("div");
-  note.style.cssText = "background:var(--gold-pale);border:1px solid rgba(196,146,42,.2);border-radius:var(--r-lg);padding:14px 16px;margin-top:28px;display:flex;align-items:center;gap:12px;";
-  note.innerHTML = `
-    <svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--gold)" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <div style="flex:1;">
-      <strong style="font-size:13px;color:var(--gold);">Anthropic API key not set</strong>
-      <p style="font-size:12px;color:var(--ink-mid);margin-top:2px;">You need an API key to generate plans with AI. You can still use Offline mode without one.</p>
-    </div>
-    <button class="ep-btn ep-btn--gold ep-btn--sm" onclick="openKeyModal()">Set API Key</button>
-  `;
-  document.querySelector(".ep-main").appendChild(note);
-}
+function esc(s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function toggleSidebar() { document.getElementById("sidebar").classList.toggle("open"); }
 </script>
 </body>
 </html>
