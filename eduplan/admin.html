@@ -686,8 +686,13 @@ async function addStaff() {
   btn.disabled = true;
   btn.textContent = "Adding…";
 
-  // Sign up via Supabase Auth
-  const { data, error } = await sb.auth.signUp({
+  // Use a fresh Supabase client for signup to avoid conflicting with admin session
+  const sbSignup = supabase.createClient(
+    EDUPLAN_CONFIG.SUPABASE_URL,
+    EDUPLAN_CONFIG.SUPABASE_ANON
+  );
+
+  const { data, error } = await sbSignup.auth.signUp({
     email, password,
     options: {
       emailRedirectTo: "https://plan.wisestudy.com.ng/login.html",
@@ -705,6 +710,7 @@ async function addStaff() {
   });
 
   if (error) {
+    console.error("Signup error:", error);
     errEl.textContent = error.message;
     errEl.style.display = "block";
     btn.disabled = false;
@@ -712,9 +718,11 @@ async function addStaff() {
     return;
   }
 
+  console.log("Signup result:", data);
+
   // Insert profile directly — don't wait for email confirmation
   if (data.user) {
-    await sb.from("profiles").upsert({
+    const { error: profileError } = await sb.from("profiles").upsert({
       id:             data.user.id,
       name:           first + " " + last,
       email,
@@ -727,6 +735,9 @@ async function addStaff() {
       school_type:    user.school_type    || "",
       credits:        0,
     });
+    if (profileError) console.error("Profile upsert error:", profileError);
+  } else {
+    console.warn("No user returned from signup — email confirmation may still be pending");
   }
 
   // Also insert with a dummy ID if user object is null (email confirmation pending)
