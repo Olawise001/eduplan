@@ -169,9 +169,11 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/config.js"></script>
 <script>
-if (!Auth.requireAuth()) {}
+const sb = getSupabase();
+await Auth.requireAuth();
 const user = Auth.get();
 document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
 document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
@@ -179,7 +181,13 @@ if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
   document.getElementById("schoolSection").style.display = "";
 }
 
-let plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+let plans = [];
+if (user.id && user.id !== "demo") {
+  const { data } = await sb.from("plans").select("*").eq("user_id", user.id).order("saved_at", { ascending: false });
+  plans = data || [];
+} else {
+  plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+}
 let activePlanId = null;
 
 // Populate subject filter
@@ -293,10 +301,15 @@ function closeModal() {
   activePlanId = null;
 }
 
-function deletePlan(id) {
+async function deletePlan(id) {
   if (!confirm("Delete this plan? This cannot be undone.")) return;
+  if (user.id && user.id !== "demo") {
+    await sb.from("plans").delete().eq("id", id);
+  } else {
+    plans = plans.filter(p=>p.id!==id);
+    localStorage.setItem("eduplan_plans", JSON.stringify(plans));
+  }
   plans = plans.filter(p=>p.id!==id);
-  localStorage.setItem("eduplan_plans", JSON.stringify(plans));
   closeModal();
   renderStats();
   renderList();

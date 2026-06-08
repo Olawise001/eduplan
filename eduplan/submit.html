@@ -109,20 +109,27 @@
 
   </main>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/config.js"></script>
 <script>
-if (!Auth.requireAuth()) {}
+const sb = getSupabase();
+await Auth.requireAuth();
 const user = Auth.get();
 document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
 document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
 
-// Hide school-specific submit if individual
 if (user.type === "individual") {
   document.getElementById("submitToGroup").style.display = "none";
 }
 
 let selectedPlanId = null;
-const plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+let plans = [];
+if (user.id && user.id !== "demo") {
+  const { data } = await sb.from("plans").select("*").eq("user_id", user.id).eq("status","draft").order("saved_at",{ascending:false});
+  plans = data || [];
+} else {
+  plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+}
 const list  = document.getElementById("planSelectList");
 
 if (plans.length > 0) {
@@ -155,21 +162,26 @@ function selectPlan(id) {
 
 function doSubmit() {
   if (!selectedPlanId) return;
-  const plans2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-  const idx = plans2.findIndex(x=>x.id===selectedPlanId);
-  if (idx===-1) return;
-
   const submitTo = document.getElementById("submitTo").value;
   const notes    = document.getElementById("submitNotes").value.trim();
-  plans2[idx].status   = "pending";
-  plans2[idx].submitTo = submitTo;
-  plans2[idx].submitNotes = notes;
-  plans2[idx].submittedAt = new Date().toLocaleDateString("en-GB");
 
-  // TODO: Insert into Supabase:
-  // await supabase.from('submissions').insert({ plan_id: plans2[idx].id, submitted_to: submitTo, notes, status:'pending', teacher_id: user.id });
-
-  localStorage.setItem("eduplan_plans", JSON.stringify(plans2));
+  if (user.id && user.id !== "demo") {
+    // Update plan status
+    await sb.from("plans").update({ status: "pending" }).eq("id", selectedPlanId);
+    // Insert submission record
+    await sb.from("submissions").insert({
+      plan_id:      selectedPlanId,
+      teacher_id:   user.id,
+      school_name:  user.school_name || "",
+      submitted_to: submitTo,
+      submit_notes: notes,
+      status:       "pending",
+    });
+  } else {
+    const plans2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+    const idx = plans2.findIndex(x=>x.id===selectedPlanId);
+    if (idx !== -1) { plans2[idx].status = "pending"; localStorage.setItem("eduplan_plans", JSON.stringify(plans2)); }
+  }
 
   document.getElementById("submitForm").style.display = "none";
   const detail = user.type === "individual"

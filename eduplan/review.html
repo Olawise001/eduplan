@@ -153,9 +153,11 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/config.js"></script>
 <script>
-if (!Auth.requireAuth()) {}
+const sb = getSupabase();
+await Auth.requireAuth();
 const user = Auth.get();
 document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
 document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
@@ -178,16 +180,35 @@ document.getElementById("reviewSubtitle").textContent =
     ? "Plans submitted to you (HOD) by teachers. Approve or return with feedback."
     : "All plans in this school's review queue.";
 
-// PHASE 1: use localStorage plans as demo data (submitted to this role)
-let plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-// For demo, show all submitted plans regardless of submitTo
-let allSubmitted = plans.filter(p => p.status === "pending" || p.status === "approved" || p.status === "returned");
-
-// TODO Phase 2: fetch from Supabase:
-// const { data } = await supabase.from('submissions')
-//   .select('*, plans(*), profiles(*)')
-//   .eq('submitted_to', user.role)
-//   .order('submitted_at', { ascending: false });
+// Load submissions from Supabase
+let plans = [];
+let allSubmitted = [];
+if (user.id && user.id !== "demo" && user.school_name) {
+  const { data: subs } = await sb.from("submissions")
+    .select("*, plans(*)")
+    .eq("school_name", user.school_name)
+    .order("submitted_at", { ascending: false });
+  if (subs) {
+    allSubmitted = subs.map(s => ({
+      id:            s.plan_id,
+      subId:         s.id,
+      title:         s.plans?.title || "Lesson Plan",
+      class:         s.plans?.class || "",
+      subject:       s.plans?.subject || "",
+      term:          s.plans?.term || "",
+      meta:          s.plans?.meta || "",
+      status:        s.status,
+      submitNotes:   s.submit_notes,
+      reviewComment: s.review_comment,
+      submittedAt:   s.submitted_at ? new Date(s.submitted_at).toLocaleDateString("en-GB") : "",
+      approvedAt:    s.approved_at  ? new Date(s.approved_at).toLocaleDateString("en-GB")  : "",
+      html:          s.plans?.html || "",
+    }));
+  }
+} else {
+  plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  allSubmitted = plans.filter(p => ["pending","approved","returned"].includes(p.status||""));
+}
 
 let currentTab = "pending";
 let returnTargetId = null;
@@ -261,19 +282,22 @@ function renderReviewList() {
   `).join("");
 }
 
-function approvePlan(id) {
-  const idx = plans.findIndex(p=>p.id===id);
-  if (idx===-1) return;
-  plans[idx].status     = "approved";
-  plans[idx].approvedAt = new Date().toLocaleDateString("en-GB");
-  plans[idx].approvedBy = user.name;
-  localStorage.setItem("eduplan_plans", JSON.stringify(plans));
-  allSubmitted = plans.filter(p => p.status === "pending" || p.status === "approved" || p.status === "returned");
+async function approvePlan(id) {
+  const plan = allSubmitted.find(p=>p.id===id);
+  if (!plan) return;
+  if (user.id && user.id !== "demo") {
+    await sb.from("submissions").update({ status:"approved", approved_at: new Date().toISOString(), approved_by: user.name }).eq("plan_id", id);
+    await sb.from("plans").update({ status: "approved" }).eq("id", id);
+  } else {
+    const p2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+    const idx = p2.findIndex(p=>p.id===id);
+    if (idx!==-1){ p2[idx].status="approved"; localStorage.setItem("eduplan_plans", JSON.stringify(p2)); }
+  }
+  plan.status = "approved";
+  plan.approvedAt = new Date().toLocaleDateString("en-GB");
   updateCounts();
   renderReviewList();
   showToast("Plan approved!", "success");
-
-  // TODO Phase 2: await supabase.from('submissions').update({ status:'approved', approved_at: new Date(), approved_by: user.id }).eq('plan_id', id);
 }
 
 function openReturnModal(id) {
@@ -287,23 +311,23 @@ function closeReturnModal() {
   returnTargetId = null;
 }
 
-function confirmReturn() {
+async function confirmReturn() {
   const comment = document.getElementById("returnComment").value.trim();
   if (!comment) { alert("Please enter a comment explaining why the plan is being returned."); return; }
-  const idx = plans.findIndex(p=>p.id===returnTargetId);
-  if (idx===-1) return;
-  plans[idx].status        = "returned";
-  plans[idx].reviewComment = comment;
-  plans[idx].returnedAt    = new Date().toLocaleDateString("en-GB");
-  plans[idx].returnedBy    = user.name;
-  localStorage.setItem("eduplan_plans", JSON.stringify(plans));
-  allSubmitted = plans.filter(p => p.status === "pending" || p.status === "approved" || p.status === "returned");
+  if (user.id && user.id !== "demo") {
+    await sb.from("submissions").update({ status:"returned", review_comment: comment, returned_at: new Date().toISOString() }).eq("plan_id", returnTargetId);
+    await sb.from("plans").update({ status:"returned" }).eq("id", returnTargetId);
+  } else {
+    const p2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+    const idx = p2.findIndex(p=>p.id===returnTargetId);
+    if (idx!==-1){ p2[idx].status="returned"; p2[idx].reviewComment=comment; localStorage.setItem("eduplan_plans",JSON.stringify(p2)); }
+  }
+  const plan = allSubmitted.find(p=>p.id===returnTargetId);
+  if (plan){ plan.status="returned"; plan.reviewComment=comment; }
   closeReturnModal();
   updateCounts();
   renderReviewList();
   showToast("Plan returned to teacher.", "info");
-
-  // TODO Phase 2: await supabase.from('submissions').update({ status:'returned', review_comment: comment, returned_at: new Date() }).eq('plan_id', returnTargetId);
 }
 
 function viewPlan(id) {

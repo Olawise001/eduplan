@@ -7,10 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="assets/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="ep-auth-page">
-
   <div class="ep-auth-visual">
     <div class="ep-auth-visual__content">
       <div class="ep-auth-visual__logo">
@@ -23,7 +23,7 @@
       <p>Your lesson plans, scheme of work, and submission history — all in one place.</p>
       <div class="ep-auth-feature" style="margin-top:36px;">
         <div class="ep-auth-feature__icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <span>Your data is encrypted and secure</span>
+        <span>Your data is securely stored in the cloud</span>
       </div>
       <div class="ep-auth-feature">
         <div class="ep-auth-feature__icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
@@ -50,10 +50,11 @@
         <input class="ep-input" id="loginPassword" type="password" autocomplete="current-password"/>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
-        <a href="#" style="font-size:13px;color:var(--sage);font-weight:500;">Forgot password?</a>
+        <a href="#" id="forgotLink" style="font-size:13px;color:var(--sage);font-weight:500;">Forgot password?</a>
       </div>
 
       <div id="login-error" style="display:none;color:var(--danger);background:var(--danger-pale);border:1px solid rgba(179,48,48,.2);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:16px;"></div>
+      <div id="login-info"  style="display:none;color:var(--pine);background:var(--paler);border:1px solid var(--pale);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:16px;"></div>
 
       <button class="ep-btn ep-btn--primary ep-btn--full ep-btn--lg" id="loginBtn" onclick="doLogin()">
         <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -62,13 +63,12 @@
 
       <div class="ep-divider"><span>or</span></div>
 
-      <!-- Demo access -->
       <div style="background:var(--gold-pale);border:1px solid rgba(196,146,42,.2);border-radius:var(--r);padding:14px 16px;">
         <p style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:8px;">
-          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Demo Mode
         </p>
-        <p style="font-size:12px;color:var(--ink-mid);margin-bottom:10px;">Try EduPlan without creating an account. Data is stored locally.</p>
+        <p style="font-size:12px;color:var(--ink-mid);margin-bottom:10px;">Try EduPlan without creating an account.</p>
         <div style="display:flex;gap:8px;">
           <button class="ep-btn ep-btn--ghost ep-btn--sm" style="flex:1;" onclick="demoLogin('individual')">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
@@ -90,21 +90,28 @@
 
 <script src="assets/config.js"></script>
 <script>
-// If already logged in, redirect
-if (Auth.isLoggedIn()) window.location.href = "dashboard.html";
+const sb = getSupabase();
+
+// If already logged in redirect
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await Auth.refreshProfile(session.user.id);
+    window.location.href = "dashboard.html";
+  }
+})();
 
 document.getElementById("loginPassword").addEventListener("keydown", e => {
   if (e.key === "Enter") doLogin();
 });
 
-function doLogin() {
+async function doLogin() {
   const email = document.getElementById("loginEmail").value.trim();
   const pw    = document.getElementById("loginPassword").value;
   const errEl = document.getElementById("login-error");
   const btn   = document.getElementById("loginBtn");
 
   errEl.style.display = "none";
-
   if (!email || !pw) {
     errEl.textContent = "Please enter your email and password.";
     errEl.style.display = "block";
@@ -112,41 +119,58 @@ function doLogin() {
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;"></span> Logging in…';
+  btn.innerHTML = '<span class="ep-spin"></span> Logging in…';
 
-  // TODO: Replace with real Supabase auth:
-  // const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
-  // if (error) { showErr(error.message); return; }
-  // const profile = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
-  // Auth.set(profile.data);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
 
-  // PHASE 1 PLACEHOLDER — check localStorage user
-  setTimeout(() => {
-    const saved = Auth.get();
-    if (saved && saved.email === email) {
-      window.location.href = "dashboard.html";
-    } else {
-      // Demo fallback: create a temporary session
-      errEl.textContent = "No account found with that email. Use the Demo buttons below, or register first.";
-      errEl.style.display = "block";
-      btn.disabled = false;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Log in';
-    }
-  }, 800);
+  if (error) {
+    errEl.textContent = error.message === "Invalid login credentials"
+      ? "Incorrect email or password. Please try again."
+      : error.message;
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Log in';
+    return;
+  }
+
+  // Fetch profile
+  await Auth.refreshProfile(data.user.id);
+  window.location.href = "dashboard.html";
 }
 
+// Forgot password
+document.getElementById("forgotLink").addEventListener("click", async e => {
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value.trim();
+  const infoEl = document.getElementById("login-info");
+  const errEl  = document.getElementById("login-error");
+  if (!email) {
+    errEl.textContent = "Enter your email address above first.";
+    errEl.style.display = "block";
+    return;
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: `${location.origin}/reset-password.html`
+  });
+  infoEl.textContent = error
+    ? error.message
+    : "Password reset email sent — check your inbox.";
+  infoEl.style.display = "block";
+  errEl.style.display  = "none";
+});
+
+// Demo login (localStorage only — no Supabase)
 function demoLogin(type) {
   if (type === "individual") {
-    Auth.set({ name: "Demo Teacher", email: "demo@individual.com", type: "individual", role: "teacher", credits: 50, subject: "Mathematics" });
+    Auth.set({ id:"demo", name:"Demo Teacher", email:"demo@individual.com", type:"individual", role:"teacher", credits:50, subject:"Mathematics" });
   } else {
-    Auth.set({ name: "Demo Admin", email: "demo@school.com", type: "school", role: "principal", credits: 200, schoolName: "Demo Academy", state: "Lagos" });
+    Auth.set({ id:"demo", name:"Demo Admin", email:"demo@school.com", type:"school", role:"principal", credits:200, school_name:"Demo Academy", state:"Lagos" });
   }
   window.location.href = "dashboard.html";
 }
 
-// Spin keyframe
 const style = document.createElement("style");
-style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
+style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}.ep-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}";
 document.head.appendChild(style);
 </script>
 </body>

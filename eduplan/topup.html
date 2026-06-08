@@ -199,9 +199,11 @@
 
 <!-- Flutterwave SDK -->
 <script src="https://checkout.flutterwave.com/v3.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/config.js"></script>
 <script>
-if (!Auth.requireAuth()) {}
+const sb = getSupabase();
+await Auth.requireAuth();
 const user = Auth.get();
 document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
 document.getElementById("heroBalance").textContent = (user.credits||0);
@@ -308,26 +310,17 @@ function handlePayment() {
 }
 
 function onPaymentSuccess(response) {
-  // Add credits
-  Auth.addCredits(selectedPkg.credits);
+  // Add credits via Supabase (also logs the transaction)
+  await Auth.addCredits(
+    selectedPkg.credits,
+    selectedPkg.naira,
+    response.transaction_id || response.tx_ref || "",
+    `Top-up: ${selectedPkg.label} (${selectedPkg.credits} credits)`
+  );
   const newCredits = Auth.credits();
 
-  // Save transaction to localStorage
-  const txns = JSON.parse(localStorage.getItem("eduplan_txns")||"[]");
-  txns.unshift({
-    type:      "credit",
-    label:     `Top-up: ${selectedPkg.label} (${selectedPkg.credits} credits)`,
-    amount:    selectedPkg.credits,
-    naira:     selectedPkg.naira,
-    ref:       response.transaction_id || response.tx_ref || "",
-    date:      new Date().toLocaleDateString("en-GB"),
-  });
-  txns.splice(50);
-  localStorage.setItem("eduplan_txns", JSON.stringify(txns));
-
-  // TODO Phase 2: verify payment server-side via Supabase Edge Function:
-  // await supabase.functions.invoke('verify-payment', { body: { transaction_id: response.transaction_id, expected_credits: selectedPkg.credits } });
-  // Then update credits in Supabase profiles table and re-fetch.
+  // Phase 2: verify payment server-side via Supabase Edge Function:
+  // await sb.functions.invoke('verify-payment', { body: { transaction_id: response.transaction_id, expected_credits: selectedPkg.credits } });
 
   // Update UI
   document.getElementById("heroBalance").textContent = newCredits;
@@ -343,14 +336,22 @@ function onPaymentSuccess(response) {
   selectedPkg = null;
 }
 
-function renderTxHistory() {
-  const txns = JSON.parse(localStorage.getItem("eduplan_txns")||"[]");
-  // Also show credit deductions from generations
-  const plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-  const deductions = plans.map(p => ({
-    type: "debit", label: "Generated: " + (p.title||"Lesson Plan"), amount: EDUPLAN_CONFIG.CREDITS_PER_GENERATION, date: p.savedAt||""
-  }));
-  const all = [...txns, ...deductions].sort((a,b)=>b.date>a.date?1:-1).slice(0,20);
+async function renderTxHistory() {
+  let all = [];
+  if (user.id && user.id !== "demo") {
+    const { data } = await sb.from("transactions")
+      .select("*").eq("user_id", user.id)
+      .order("created_at", { ascending: false }).limit(30);
+    all = (data||[]).map(t => ({
+      type: t.type, label: t.label, amount: t.amount, naira: t.naira,
+      ref: t.reference, date: new Date(t.created_at).toLocaleDateString("en-GB")
+    }));
+  } else {
+    const txns = JSON.parse(localStorage.getItem("eduplan_txns")||"[]");
+    const plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+    const deductions = plans.map(p => ({ type:"debit", label:"Generated: "+(p.title||"Lesson Plan"), amount:EDUPLAN_CONFIG.CREDITS_PER_GENERATION, date:p.savedAt||"" }));
+    all = [...txns, ...deductions].sort((a,b)=>b.date>a.date?1:-1).slice(0,20);
+  }
 
   const el = document.getElementById("txHistory");
   if (all.length === 0) {

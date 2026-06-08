@@ -449,10 +449,12 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/config.js"></script>
 <script src="assets/scheme.js"></script>
 <script>
-if (!Auth.requireAuth()) {}
+const sb = getSupabase();
+await Auth.requireAuth();
 const user = Auth.get();
 document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
 document.getElementById("creditsNote").textContent = (user.credits||0);
@@ -953,22 +955,40 @@ function shareWhatsApp() {
   window.open("https://wa.me/?text="+encodeURIComponent(t.slice(0,2000)),"_blank");
 }
 
-function savePlanLocally() {
+async function savePlanLocally() {
   const ed = document.getElementById("lessonEditor"); if (!ed || !ed.innerText.trim()) return;
-  const plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  const user  = Auth.get();
   const title = document.getElementById("outTitle").textContent;
   const meta  = document.getElementById("outMeta").textContent;
   const parts = meta.split(" · ");
-  plans.unshift({
-    id: Date.now(), title, meta, subject: parts[1]||"", class: parts[0]||"",
-    term: parts[2]||"", topic: title.split(" — ")[1]||"", week: "",
-    status: "draft", savedAt: new Date().toLocaleDateString("en-GB"),
-    html: ed.outerHTML
-  });
-  plans.splice(30);
-  localStorage.setItem("eduplan_plans", JSON.stringify(plans));
+
+  const planData = {
+    user_id: user?.id || null,
+    title,
+    meta,
+    subject:  parts[1] || "",
+    class:    parts[0] || "",
+    term:     parts[2] || "",
+    topic:    title.split(" — ")[1] || "",
+    week:     "",
+    status:   "draft",
+    html:     ed.outerHTML,
+  };
+
+  // Save to Supabase if real user, else localStorage fallback for demo
+  if (user?.id && user.id !== "demo") {
+    const { error } = await getSupabase().from("plans").insert(planData);
+    if (error) { showToast("Save failed: " + error.message, "error"); return; }
+  } else {
+    const plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+    plans.unshift({ ...planData, id: Date.now(), savedAt: new Date().toLocaleDateString("en-GB") });
+    plans.splice(30);
+    localStorage.setItem("eduplan_plans", JSON.stringify(plans));
+  }
+
   const b = document.getElementById("savePlanBtn");
   b.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Saved!';
+  showToast("Plan saved!", "success");
   setTimeout(()=>{ b.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Save Plan'; }, 2200);
 }
 

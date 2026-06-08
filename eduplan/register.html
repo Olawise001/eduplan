@@ -7,21 +7,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="assets/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-.ep-steps { display:flex; gap:0; margin-bottom:28px; }
-.ep-step { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); position:relative; }
-.ep-step::before { content:attr(data-n); width:28px; height:28px; border-radius:50%; background:var(--border-mid); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
-.ep-step.active::before { background:var(--sage); color:#fff; }
-.ep-step.done::before  { content:'✓'; background:var(--pine); color:#fff; }
-.ep-step:not(:last-child)::after { content:''; position:absolute; top:14px; left:calc(50% + 14px); right:calc(-50% + 14px); height:2px; background:var(--border-mid); }
-.ep-step.done:not(:last-child)::after { background:var(--pine); }
-.ep-role-note { font-size:13px; color:var(--ink-soft); background:var(--paler); border:1px solid var(--pale); border-radius:var(--r); padding:10px 14px; margin-top:16px; }
+.ep-steps{display:flex;gap:0;margin-bottom:28px;}
+.ep-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);position:relative;}
+.ep-step::before{content:attr(data-n);width:28px;height:28px;border-radius:50%;background:var(--border-mid);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.ep-step.active::before{background:var(--sage);color:#fff;}
+.ep-step.done::before{content:'✓';background:var(--pine);color:#fff;}
+.ep-step:not(:last-child)::after{content:'';position:absolute;top:14px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:var(--border-mid);}
+.ep-step.done:not(:last-child)::after{background:var(--pine);}
+.ep-role-note{font-size:13px;color:var(--ink-soft);background:var(--paler);border:1px solid var(--pale);border-radius:var(--r);padding:10px 14px;margin-top:16px;}
 </style>
 </head>
 <body>
 <div class="ep-auth-page">
-
-  <!-- Visual panel -->
   <div class="ep-auth-visual">
     <div class="ep-auth-visual__content">
       <div class="ep-auth-visual__logo">
@@ -34,7 +33,7 @@
       <p>Create curriculum-aligned lesson plans in seconds, powered by AI and the 2025 NERDC scheme of work.</p>
       <div class="ep-auth-feature" style="margin-top:36px;">
         <div class="ep-auth-feature__icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <span>JSS1–SS3 scheme of work built in</span>
+        <span>Pre-Nursery to SS3 scheme of work built in</span>
       </div>
       <div class="ep-auth-feature">
         <div class="ep-auth-feature__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
@@ -47,35 +46,29 @@
     </div>
   </div>
 
-  <!-- Form panel -->
   <div class="ep-auth-form">
     <div class="ep-auth-form__inner">
       <h1>Create your account</h1>
       <p>Already have one? <a href="login.html" style="color:var(--sage);font-weight:600;">Log in here</a></p>
 
-      <!-- Steps -->
       <div class="ep-steps" id="steps">
         <div class="ep-step active" data-n="1">Account type</div>
         <div class="ep-step"        data-n="2">Your details</div>
         <div class="ep-step"        data-n="3">Done</div>
       </div>
 
-      <!-- Step 1: Choose type -->
+      <!-- Step 1 -->
       <div id="step1">
         <div class="ep-type-selector">
           <label class="ep-type-card" id="card-individual">
             <input type="radio" name="acct_type" value="individual"/>
-            <div class="ep-type-card__icon">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
-            </div>
+            <div class="ep-type-card__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
             <h4>Individual</h4>
             <p>Independent teacher — download &amp; manage your own plans</p>
           </label>
           <label class="ep-type-card" id="card-school">
             <input type="radio" name="acct_type" value="school"/>
-            <div class="ep-type-card__icon">
-              <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            </div>
+            <div class="ep-type-card__icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
             <h4>School</h4>
             <p>Register your school with review &amp; approval workflow</p>
           </label>
@@ -87,52 +80,22 @@
         </button>
       </div>
 
-      <!-- Step 2: Details -->
+      <!-- Step 2 -->
       <div id="step2" style="display:none;">
-        <!-- Individual fields -->
+        <!-- Individual -->
         <div id="fields-individual" style="display:none;">
           <div class="ep-form-grid">
-            <div class="ep-form-group">
-              <label>First Name <span class="req">*</span></label>
-              <input class="ep-input" id="firstName" type="text" autocomplete="given-name"/>
-            </div>
-            <div class="ep-form-group">
-              <label>Last Name <span class="req">*</span></label>
-              <input class="ep-input" id="lastName" type="text" autocomplete="family-name"/>
-            </div>
-            <div class="ep-form-group full">
-              <label>Email Address <span class="req">*</span></label>
-              <input class="ep-input" id="email" type="email" autocomplete="email"/>
-            </div>
-            <div class="ep-form-group full">
-              <label>Phone Number</label>
-              <input class="ep-input" id="phone" type="tel" autocomplete="tel"/>
-            </div>
+            <div class="ep-form-group"><label>First Name <span class="req">*</span></label><input class="ep-input" id="firstName" type="text"/></div>
+            <div class="ep-form-group"><label>Last Name <span class="req">*</span></label><input class="ep-input" id="lastName" type="text"/></div>
+            <div class="ep-form-group full"><label>Email Address <span class="req">*</span></label><input class="ep-input" id="email" type="email"/></div>
+            <div class="ep-form-group full"><label>Phone Number</label><input class="ep-input" id="phone" type="tel"/></div>
             <div class="ep-form-group">
               <label>Primary Subject</label>
               <select class="ep-select" id="primarySubject">
                 <option value="">Select subject</option>
-                <option>Mathematics</option>
-                <option>English Studies</option>
-                <option>Physics</option>
-                <option>Chemistry</option>
-                <option>Biology</option>
-                <option>Economics</option>
-                <option>Government</option>
-                <option>Literature in English</option>
-                <option>Further Mathematics</option>
-                <option>Geography</option>
-                <option>Agricultural Science</option>
-                <option>Financial Accounting</option>
-                <option>Commerce</option>
-                <option>Intermediate Science</option>
-                <option>Nigerian History</option>
-                <option>Digital Technologies</option>
-                <option>French</option>
-                <option>Christian Religious Studies</option>
-                <option>Physical &amp; Health Education</option>
-                <option>Business Studies</option>
-                <option>Cultural &amp; Creative Arts</option>
+                <optgroup label="Pre-Primary"><option>Health Habits</option><option>Numeracy</option><option>Literacy</option><option>Handwriting</option><option>Pre-Science</option><option>Social Habits</option></optgroup>
+                <optgroup label="Primary"><option>English Language</option><option>Mathematics</option><option>Basic Science</option><option>Nigerian History</option><option>Social and Citizenship Studies</option><option>Cultural and Creative Arts</option><option>Christian Religious Studies</option><option>Islamic Studies</option><option>French Language</option></optgroup>
+                <optgroup label="Secondary"><option>Mathematics</option><option>English Studies</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>Economics</option><option>Government</option><option>Literature in English</option><option>Further Mathematics</option><option>Geography</option><option>Agricultural Science</option><option>Financial Accounting</option><option>Commerce</option><option>Digital Technologies</option><option>Physical &amp; Health Education</option><option>Business Studies</option></optgroup>
                 <option>Other</option>
               </select>
             </div>
@@ -145,96 +108,43 @@
                 <option value="other">Other</option>
               </select>
             </div>
-            <div class="ep-form-group full">
-              <label>Password <span class="req">*</span></label>
-              <input class="ep-input" id="password" type="password" autocomplete="new-password"/>
-              <span class="ep-input-hint">At least 8 characters</span>
-            </div>
-            <div class="ep-form-group full">
-              <label>Confirm Password <span class="req">*</span></label>
-              <input class="ep-input" id="password2" type="password" autocomplete="new-password"/>
-            </div>
+            <div class="ep-form-group full"><label>Password <span class="req">*</span></label><input class="ep-input" id="password" type="password"/><span class="ep-input-hint">At least 8 characters</span></div>
+            <div class="ep-form-group full"><label>Confirm Password <span class="req">*</span></label><input class="ep-input" id="password2" type="password"/></div>
           </div>
         </div>
 
-        <!-- School fields -->
+        <!-- School -->
         <div id="fields-school" style="display:none;">
           <div class="ep-form-grid">
             <div class="ep-section-label">School Information</div>
-            <div class="ep-form-group full">
-              <label>School Name <span class="req">*</span></label>
-              <input class="ep-input" id="schoolName" type="text"/>
-            </div>
-            <div class="ep-form-group full">
-              <label>School Address <span class="req">*</span></label>
-              <input class="ep-input" id="schoolAddress" type="text"/>
-            </div>
+            <div class="ep-form-group full"><label>School Name <span class="req">*</span></label><input class="ep-input" id="schoolName" type="text"/></div>
+            <div class="ep-form-group full"><label>School Address <span class="req">*</span></label><input class="ep-input" id="schoolAddress" type="text"/></div>
             <div class="ep-form-group">
               <label>State <span class="req">*</span></label>
               <select class="ep-select" id="state">
                 <option value="">Select state</option>
-                <option>Abia</option><option>Adamawa</option><option>Akwa Ibom</option>
-                <option>Anambra</option><option>Bauchi</option><option>Bayelsa</option>
-                <option>Benue</option><option>Borno</option><option>Cross River</option>
-                <option>Delta</option><option>Ebonyi</option><option>Edo</option>
-                <option>Ekiti</option><option>Enugu</option><option>FCT — Abuja</option>
-                <option>Gombe</option><option>Imo</option><option>Jigawa</option>
-                <option>Kaduna</option><option>Kano</option><option>Katsina</option>
-                <option>Kebbi</option><option>Kogi</option><option>Kwara</option>
-                <option>Lagos</option><option>Nasarawa</option><option>Niger</option>
-                <option>Ogun</option><option>Ondo</option><option>Osun</option>
-                <option>Oyo</option><option>Plateau</option><option>Rivers</option>
-                <option>Sokoto</option><option>Taraba</option><option>Yobe</option>
-                <option>Zamfara</option>
+                <option>Abia</option><option>Adamawa</option><option>Akwa Ibom</option><option>Anambra</option><option>Bauchi</option><option>Bayelsa</option><option>Benue</option><option>Borno</option><option>Cross River</option><option>Delta</option><option>Ebonyi</option><option>Edo</option><option>Ekiti</option><option>Enugu</option><option>FCT — Abuja</option><option>Gombe</option><option>Imo</option><option>Jigawa</option><option>Kaduna</option><option>Kano</option><option>Katsina</option><option>Kebbi</option><option>Kogi</option><option>Kwara</option><option>Lagos</option><option>Nasarawa</option><option>Niger</option><option>Ogun</option><option>Ondo</option><option>Osun</option><option>Oyo</option><option>Plateau</option><option>Rivers</option><option>Sokoto</option><option>Taraba</option><option>Yobe</option><option>Zamfara</option>
               </select>
             </div>
             <div class="ep-form-group">
               <label>School Type</label>
-              <select class="ep-select" id="schoolType">
-                <option>Private</option>
-                <option>Public</option>
-                <option>Mission / Faith-based</option>
-              </select>
+              <select class="ep-select" id="schoolType"><option>Private</option><option>Public</option><option>Mission / Faith-based</option></select>
             </div>
-
             <div class="ep-section-label">Admin Account (you)</div>
-            <div class="ep-form-group">
-              <label>Your First Name <span class="req">*</span></label>
-              <input class="ep-input" id="adminFirst" type="text"/>
-            </div>
-            <div class="ep-form-group">
-              <label>Your Last Name <span class="req">*</span></label>
-              <input class="ep-input" id="adminLast" type="text"/>
-            </div>
-            <div class="ep-form-group full">
-              <label>Admin Email <span class="req">*</span></label>
-              <input class="ep-input" id="adminEmail" type="email"/>
-            </div>
+            <div class="ep-form-group"><label>First Name <span class="req">*</span></label><input class="ep-input" id="adminFirst" type="text"/></div>
+            <div class="ep-form-group"><label>Last Name <span class="req">*</span></label><input class="ep-input" id="adminLast" type="text"/></div>
+            <div class="ep-form-group full"><label>Admin Email <span class="req">*</span></label><input class="ep-input" id="adminEmail" type="email"/></div>
             <div class="ep-form-group">
               <label>Admin Role</label>
-              <select class="ep-select" id="adminRole">
-                <option value="principal">Principal</option>
-                <option value="vp">Vice Principal</option>
-                <option value="admin">School Admin</option>
-              </select>
+              <select class="ep-select" id="adminRole"><option value="principal">Principal</option><option value="vp">Vice Principal</option><option value="admin">School Admin</option></select>
             </div>
-            <div class="ep-form-group">
-              <label>Phone</label>
-              <input class="ep-input" id="adminPhone" type="tel"/>
-            </div>
-            <div class="ep-form-group full">
-              <label>Password <span class="req">*</span></label>
-              <input class="ep-input" id="schoolPassword" type="password"/>
-              <span class="ep-input-hint">At least 8 characters</span>
-            </div>
-            <div class="ep-form-group full">
-              <label>Confirm Password <span class="req">*</span></label>
-              <input class="ep-input" id="schoolPassword2" type="password"/>
-            </div>
+            <div class="ep-form-group"><label>Phone</label><input class="ep-input" id="adminPhone" type="tel"/></div>
+            <div class="ep-form-group full"><label>Password <span class="req">*</span></label><input class="ep-input" id="schoolPassword" type="password"/><span class="ep-input-hint">At least 8 characters</span></div>
+            <div class="ep-form-group full"><label>Confirm Password <span class="req">*</span></label><input class="ep-input" id="schoolPassword2" type="password"/></div>
           </div>
         </div>
 
-        <div id="reg-error" style="display:none;" class="ep-role-note" style="color:var(--danger);background:var(--danger-pale);border-color:rgba(179,48,48,.2);margin-top:12px;"></div>
+        <div id="reg-error" style="display:none;color:var(--danger);background:var(--danger-pale);border:1px solid rgba(179,48,48,.2);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-top:12px;"></div>
 
         <div style="display:flex;gap:10px;margin-top:20px;">
           <button class="ep-btn ep-btn--ghost" onclick="goStep(1)">
@@ -249,28 +159,28 @@
         <p style="font-size:12px;color:var(--ink-soft);margin-top:14px;text-align:center;">By registering you agree to our Terms of Service and Privacy Policy.</p>
       </div>
 
-      <!-- Step 3: Success -->
-      <div id="step3" style="display:none; text-align:center; padding: 20px 0;">
+      <!-- Step 3 -->
+      <div id="step3" style="display:none;text-align:center;padding:20px 0;">
         <div style="width:64px;height:64px;background:var(--paler);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:2px solid var(--pale);">
           <svg viewBox="0 0 24 24" width="28" height="28" stroke="var(--sage)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <h2 style="font-family:'Playfair Display',serif;color:var(--forest);margin-bottom:10px;">Account created!</h2>
-        <p style="color:var(--ink-mid);font-size:15px;margin-bottom:28px;" id="successMsg">Welcome to EduPlan.</p>
-        <a href="dashboard.html" class="ep-btn ep-btn--primary ep-btn--full ep-btn--lg">
-          Go to dashboard
+        <p style="color:var(--ink-mid);font-size:15px;margin-bottom:6px;" id="successMsg">Welcome to EduPlan.</p>
+        <p style="color:var(--ink-soft);font-size:13px;margin-bottom:28px;">Check your email to confirm your account, then log in.</p>
+        <a href="login.html" class="ep-btn ep-btn--primary ep-btn--full ep-btn--lg">
+          Go to login
           <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
       </div>
-
     </div>
   </div>
 </div>
 
 <script src="assets/config.js"></script>
 <script>
+const sb = getSupabase();
 let selectedType = null;
 
-// Pre-select from URL
 const urlType = new URLSearchParams(location.search).get("type");
 if (urlType === "individual" || urlType === "school") selectType(urlType);
 
@@ -281,113 +191,114 @@ document.querySelectorAll(".ep-type-card").forEach(card => {
 function selectType(type) {
   selectedType = type;
   document.querySelectorAll(".ep-type-card").forEach(c => c.classList.remove("selected"));
-  const card = document.getElementById("card-" + type);
-  if (card) card.classList.add("selected");
-  card.querySelector("input").checked = true;
+  document.getElementById("card-" + type).classList.add("selected");
+  document.getElementById("card-" + type).querySelector("input").checked = true;
   document.getElementById("nextStep1").disabled = false;
-
   const note = document.getElementById("roleNote");
   note.style.display = "block";
-  if (type === "individual") {
-    note.textContent = "Individual accounts can generate, download, and review their own lesson plans. Credits are purchased separately.";
-  } else {
-    note.textContent = "School accounts include a submission chain (Teacher → HOD → Principal), shared credits, and term-end review history.";
-  }
+  note.textContent = type === "individual"
+    ? "Individual accounts can generate, download, and review their own lesson plans. Credits are purchased separately."
+    : "School accounts include a submission chain (Teacher → HOD → Principal), shared credits, and term-end review history.";
 }
 
 function goStep(n) {
-  document.getElementById("step1").style.display = n === 1 ? "" : "none";
-  document.getElementById("step2").style.display = n === 2 ? "" : "none";
-  document.getElementById("step3").style.display = n === 3 ? "" : "none";
-
-  document.querySelectorAll(".ep-step").forEach((el, i) => {
-    el.classList.remove("active", "done");
-    if (i + 1 < n) el.classList.add("done");
-    if (i + 1 === n) el.classList.add("active");
+  [1,2,3].forEach(i => {
+    document.getElementById("step"+i).style.display = i===n ? "" : "none";
+    const el = document.querySelectorAll(".ep-step")[i-1];
+    el.classList.remove("active","done");
+    if (i < n) el.classList.add("done");
+    if (i === n) el.classList.add("active");
   });
-
   if (n === 2) {
-    document.getElementById("fields-individual").style.display = selectedType === "individual" ? "" : "none";
-    document.getElementById("fields-school").style.display    = selectedType === "school"     ? "" : "none";
+    document.getElementById("fields-individual").style.display = selectedType==="individual" ? "" : "none";
+    document.getElementById("fields-school").style.display    = selectedType==="school"     ? "" : "none";
   }
 }
 
 function showError(msg) {
   const el = document.getElementById("reg-error");
-  el.textContent = msg;
-  el.style.display = "block";
-  el.style.color = "var(--danger)";
-  el.style.background = "var(--danger-pale)";
-  el.style.borderColor = "rgba(179,48,48,.2)";
+  el.textContent = msg; el.style.display = "block";
 }
 
-function submitRegistration() {
+async function submitRegistration() {
   const btn = document.getElementById("submitReg");
   btn.disabled = true;
   btn.textContent = "Creating account…";
+  document.getElementById("reg-error").style.display = "none";
 
-  let user = { type: selectedType, credits: 0 };
-  let err = null;
+  let email, password, meta;
 
   if (selectedType === "individual") {
-    const first  = document.getElementById("firstName").value.trim();
-    const last   = document.getElementById("lastName").value.trim();
-    const email  = document.getElementById("email").value.trim();
-    const pw     = document.getElementById("password").value;
-    const pw2    = document.getElementById("password2").value;
+    const first = document.getElementById("firstName").value.trim();
+    const last  = document.getElementById("lastName").value.trim();
+    email       = document.getElementById("email").value.trim();
+    password    = document.getElementById("password").value;
+    const pw2   = document.getElementById("password2").value;
 
-    if (!first || !last || !email) err = "Please fill in all required fields.";
-    else if (!email.includes("@")) err = "Please enter a valid email address.";
-    else if (pw.length < 8) err = "Password must be at least 8 characters.";
-    else if (pw !== pw2) err = "Passwords do not match.";
+    if (!first||!last||!email) return fail("Please fill in all required fields.", btn);
+    if (!email.includes("@"))  return fail("Enter a valid email address.", btn);
+    if (password.length < 8)   return fail("Password must be at least 8 characters.", btn);
+    if (password !== pw2)      return fail("Passwords do not match.", btn);
 
-    if (!err) {
-      user = { ...user, name: first + " " + last, email, role: document.getElementById("indRole").value, subject: document.getElementById("primarySubject").value };
-    }
+    meta = {
+      name:    first + " " + last,
+      type:    "individual",
+      role:    document.getElementById("indRole").value,
+      subject: document.getElementById("primarySubject").value,
+      phone:   document.getElementById("phone").value.trim(),
+    };
   } else {
-    const schoolName = document.getElementById("schoolName").value.trim();
-    const adminFirst = document.getElementById("adminFirst").value.trim();
-    const adminLast  = document.getElementById("adminLast").value.trim();
-    const adminEmail = document.getElementById("adminEmail").value.trim();
-    const pw         = document.getElementById("schoolPassword").value;
-    const pw2        = document.getElementById("schoolPassword2").value;
+    const schoolName  = document.getElementById("schoolName").value.trim();
+    const adminFirst  = document.getElementById("adminFirst").value.trim();
+    const adminLast   = document.getElementById("adminLast").value.trim();
+    email             = document.getElementById("adminEmail").value.trim();
+    password          = document.getElementById("schoolPassword").value;
+    const pw2         = document.getElementById("schoolPassword2").value;
 
-    if (!schoolName || !adminFirst || !adminLast || !adminEmail) err = "Please fill in all required fields.";
-    else if (!adminEmail.includes("@")) err = "Please enter a valid email address.";
-    else if (pw.length < 8) err = "Password must be at least 8 characters.";
-    else if (pw !== pw2) err = "Passwords do not match.";
+    if (!schoolName||!adminFirst||!adminLast||!email) return fail("Please fill in all required fields.", btn);
+    if (!email.includes("@"))  return fail("Enter a valid email address.", btn);
+    if (password.length < 8)   return fail("Password must be at least 8 characters.", btn);
+    if (password !== pw2)      return fail("Passwords do not match.", btn);
 
-    if (!err) {
-      user = { ...user,
-        name: adminFirst + " " + adminLast,
-        email: adminEmail,
-        role: document.getElementById("adminRole").value,
-        schoolName,
-        schoolAddress: document.getElementById("schoolAddress").value.trim(),
-        state: document.getElementById("state").value,
-      };
-    }
+    meta = {
+      name:           adminFirst + " " + adminLast,
+      type:           "school",
+      role:           document.getElementById("adminRole").value,
+      school_name:    schoolName,
+      school_address: document.getElementById("schoolAddress").value.trim(),
+      state:          document.getElementById("state").value,
+      school_type:    document.getElementById("schoolType").value,
+      phone:          document.getElementById("adminPhone").value.trim(),
+    };
   }
 
-  if (err) {
-    showError(err);
-    btn.disabled = false;
-    btn.innerHTML = 'Create account <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>';
-    return;
+  // Sign up via Supabase Auth
+  const { data, error } = await sb.auth.signUp({
+    email, password,
+    options: { data: meta }
+  });
+
+  if (error) return fail(error.message, btn);
+
+  // Update profile with extra fields (trigger creates the base row)
+  if (data.user) {
+    await sb.from("profiles").update({
+      ...meta,
+      credits: 0
+    }).eq("id", data.user.id);
   }
 
-  // TODO: Replace with real Supabase auth call:
-  // const { data, error } = await supabase.auth.signUp({ email: user.email, password: pw });
-  // Then: await supabase.from('profiles').insert({ id: data.user.id, ...user });
-
-  // PHASE 1 PLACEHOLDER — saves to localStorage
-  Auth.set(user);
-  document.getElementById("successMsg").textContent =
-    selectedType === "school"
-      ? `Welcome, ${user.name}! Your school account for ${user.schoolName} is ready.`
-      : `Welcome, ${user.name}! Your individual account is ready.`;
+  document.getElementById("successMsg").textContent = selectedType === "school"
+    ? `Welcome, ${meta.name}! Your school account is ready.`
+    : `Welcome, ${meta.name}! Your account is ready.`;
 
   goStep(3);
+}
+
+function fail(msg, btn) {
+  showError(msg);
+  btn.disabled = false;
+  btn.textContent = "Create account";
 }
 </script>
 </body>
