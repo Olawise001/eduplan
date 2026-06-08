@@ -720,9 +720,15 @@ async function addStaff() {
 
   console.log("Signup result:", data);
 
-  // Insert profile directly — don't wait for email confirmation
-  if (data.user) {
-    const { error: profileError } = await sb.from("profiles").upsert({
+  // Insert profile using the new user's session
+  if (data.user && data.session) {
+    // Use the new user's access token to insert their own profile
+    const sbNewUser = supabase.createClient(
+      EDUPLAN_CONFIG.SUPABASE_URL,
+      EDUPLAN_CONFIG.SUPABASE_ANON,
+      { global: { headers: { Authorization: `Bearer ${data.session.access_token}` } } }
+    );
+    const { error: profileError } = await sbNewUser.from("profiles").upsert({
       id:             data.user.id,
       name:           first + " " + last,
       email,
@@ -736,8 +742,24 @@ async function addStaff() {
       credits:        0,
     });
     if (profileError) console.error("Profile upsert error:", profileError);
+  } else if (data.user && !data.session) {
+    // No session means email confirmation is pending — insert via admin client
+    const { error: profileError } = await sb.from("profiles").insert({
+      id:             data.user.id,
+      name:           first + " " + last,
+      email,
+      type:           "school",
+      role,
+      subject,
+      school_name:    user.school_name,
+      school_address: user.school_address || "",
+      state:          user.state          || "",
+      school_type:    user.school_type    || "",
+      credits:        0,
+    });
+    if (profileError) console.error("Profile insert error:", profileError);
   } else {
-    console.warn("No user returned from signup — email confirmation may still be pending");
+    console.warn("No user returned from signup");
   }
 
   // Also insert with a dummy ID if user object is null (email confirmation pending)
