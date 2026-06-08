@@ -8,7 +8,7 @@ const EDUPLAN_CONFIG = {
   SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqZ3hobXRibWNrZnlyaG9qc3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDg2MDksImV4cCI6MjA5NjQ4NDYwOX0.ZdZi02b3NQ9S4X_kUafu_C8b9iAYWyNUbg3IvrTlbQs",
 
   // ── Flutterwave ───────────────────────────────────────────
-  FLUTTERWAVE_PUBLIC: "YOUR_FLUTTERWAVE_PUBLIC_KEY",
+  FLUTTERWAVE_PUBLIC: "FLWPUBK-11c14c1b4c26cae251267524a97f4c78-X",
 
   // ── Anthropic (Claude API) ────────────────────────────────
   CLAUDE_MODEL: "claude-sonnet-4-20250514",
