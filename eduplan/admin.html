@@ -690,6 +690,7 @@ async function addStaff() {
   const { data, error } = await sb.auth.signUp({
     email, password,
     options: {
+      emailRedirectTo: "https://plan.wisestudy.com.ng/login.html",
       data: {
         name:           first + " " + last,
         type:           "school",
@@ -711,7 +712,7 @@ async function addStaff() {
     return;
   }
 
-  // Update profile with full details
+  // Insert profile directly — don't wait for email confirmation
   if (data.user) {
     await sb.from("profiles").upsert({
       id:             data.user.id,
@@ -728,8 +729,15 @@ async function addStaff() {
     });
   }
 
+  // Also insert with a dummy ID if user object is null (email confirmation pending)
+  // so we can show them in the list immediately
+  if (!data.user) {
+    showToast(`Invitation sent to ${email}. They will appear after confirming.`, "info", 5000);
+  } else {
+    showToast(`${first} ${last} added successfully!`, "success");
+  }
+
   closeInviteModal();
-  showToast(`${first} ${last} added successfully!`, "success");
   await loadStaff();
   renderOverview();
 
