@@ -686,93 +686,44 @@ async function addStaff() {
   btn.disabled = true;
   btn.textContent = "Adding…";
 
-  // Use a fresh Supabase client for signup to avoid conflicting with admin session
-  const sbSignup = supabase.createClient(
-    EDUPLAN_CONFIG.SUPABASE_URL,
-    EDUPLAN_CONFIG.SUPABASE_ANON
-  );
+  // Use Edge Function to create staff — bypasses all RLS restrictions
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const authToken = session?.access_token || "";
 
-  const { data, error } = await sbSignup.auth.signUp({
-    email, password,
-    options: {
-      emailRedirectTo: "https://plan.wisestudy.com.ng/login.html",
-      data: {
-        name:           first + " " + last,
-        type:           "school",
-        role,
-        subject,
-        school_name:    user.school_name,
-        school_address: user.school_address || "",
-        state:          user.state          || "",
-        school_type:    user.school_type    || "",
+    const resp = await fetch(
+      `${EDUPLAN_CONFIG.SUPABASE_URL}/functions/v1/create-staff`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${authToken}`,
+          "apikey":        EDUPLAN_CONFIG.SUPABASE_ANON,
+        },
+        body: JSON.stringify({ name: first + " " + last, email, password, role, subject }),
       }
-    }
-  });
-
-  if (error) {
-    console.error("Signup error:", error);
-    errEl.textContent = error.message;
-    errEl.style.display = "block";
-    btn.disabled = false;
-    btn.textContent = "Add Staff Member";
-    return;
-  }
-
-  console.log("Signup result:", data);
-
-  // Insert profile using the new user's session
-  if (data.user && data.session) {
-    // Use the new user's access token to insert their own profile
-    const sbNewUser = supabase.createClient(
-      EDUPLAN_CONFIG.SUPABASE_URL,
-      EDUPLAN_CONFIG.SUPABASE_ANON,
-      { global: { headers: { Authorization: `Bearer ${data.session.access_token}` } } }
     );
-    const { error: profileError } = await sbNewUser.from("profiles").upsert({
-      id:             data.user.id,
-      name:           first + " " + last,
-      email,
-      type:           "school",
-      role,
-      subject,
-      school_name:    user.school_name,
-      school_address: user.school_address || "",
-      state:          user.state          || "",
-      school_type:    user.school_type    || "",
-      credits:        0,
-    });
-    if (profileError) console.error("Profile upsert error:", profileError);
-  } else if (data.user && !data.session) {
-    // No session means email confirmation is pending — insert via admin client
-    const { error: profileError } = await sb.from("profiles").insert({
-      id:             data.user.id,
-      name:           first + " " + last,
-      email,
-      type:           "school",
-      role,
-      subject,
-      school_name:    user.school_name,
-      school_address: user.school_address || "",
-      state:          user.state          || "",
-      school_type:    user.school_type    || "",
-      credits:        0,
-    });
-    if (profileError) console.error("Profile insert error:", profileError);
-  } else {
-    console.warn("No user returned from signup");
-  }
 
-  // Also insert with a dummy ID if user object is null (email confirmation pending)
-  // so we can show them in the list immediately
-  if (!data.user) {
-    showToast(`Invitation sent to ${email}. They will appear after confirming.`, "info", 5000);
-  } else {
+    const result = await resp.json();
+    console.log("Create staff result:", result);
+
+    if (!resp.ok || !result.success) {
+      errEl.textContent = result.error || "Failed to add staff member.";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Add Staff Member';
+      return;
+    }
+
+    closeInviteModal();
     showToast(`${first} ${last} added successfully!`, "success");
-  }
+    await loadStaff();
+    renderOverview();
 
-  closeInviteModal();
-  await loadStaff();
-  renderOverview();
+  } catch (err) {
+    errEl.textContent = "Network error: " + err.message;
+    errEl.style.display = "block";
+  }
 
   btn.disabled = false;
   btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Add Staff Member';
