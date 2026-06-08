@@ -1,0 +1,127 @@
+// ============================================================
+//  EduPlan — Global Configuration
+// ============================================================
+
+const EDUPLAN_CONFIG = {
+  // ── Supabase ──────────────────────────────────────────────
+  SUPABASE_URL:  "https://ajgxhmtbmckfyrhojssh.supabase.co",
+  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqZ3hobXRibWNrZnlyaG9qc3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDg2MDksImV4cCI6MjA5NjQ4NDYwOX0.ZdZi02b3NQ9S4X_kUafu_C8b9iAYWyNUbg3IvrTlbQs",
+
+  // ── Flutterwave ───────────────────────────────────────────
+  FLUTTERWAVE_PUBLIC: "YOUR_FLUTTERWAVE_PUBLIC_KEY",
+
+  // ── Anthropic (Claude API) ────────────────────────────────
+  CLAUDE_MODEL: "claude-sonnet-4-20250514",
+
+  // ── Credits ───────────────────────────────────────────────
+  CREDITS_PER_GENERATION: 5,
+  TOPUP_PACKAGES: [
+    { naira: 1000,  credits: 100,  label: "Starter"  },
+    { naira: 3000,  credits: 320,  label: "Standard" },
+    { naira: 5000,  credits: 600,  label: "Pro"      },
+    { naira: 10000, credits: 1300, label: "Premium"  },
+  ],
+
+  APP_NAME:    "EduPlan",
+  APP_TAGLINE: "AI-Powered Lesson Planning for Nigerian Teachers",
+};
+
+// ============================================================
+//  Supabase client — requires supabase-js CDN in each page
+// ============================================================
+function getSupabase() {
+  if (!window._sb) {
+    window._sb = supabase.createClient(
+      EDUPLAN_CONFIG.SUPABASE_URL,
+      EDUPLAN_CONFIG.SUPABASE_ANON
+    );
+  }
+  return window._sb;
+}
+
+// ============================================================
+//  Auth helpers
+// ============================================================
+const Auth = {
+  _key: "eduplan_profile",
+
+  get()        { try { return JSON.parse(localStorage.getItem(this._key)); } catch { return null; } },
+  set(p)       { localStorage.setItem(this._key, JSON.stringify(p)); },
+  clear()      { localStorage.removeItem(this._key); localStorage.removeItem("eduplan_plans"); },
+  isLoggedIn() { return !!this.get(); },
+  credits()    { return this.get()?.credits || 0; },
+
+  // Call on every protected page load
+  async requireAuth() {
+    const sb = getSupabase();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = "login.html"; return false; }
+    await this.refreshProfile(session.user.id);
+    return true;
+  },
+
+  async refreshProfile(uid) {
+    const sb = getSupabase();
+    const id = uid || (await sb.auth.getUser()).data?.user?.id;
+    if (!id) return null;
+    const { data } = await sb.from("profiles").select("*").eq("id", id).single();
+    if (data) this.set(data);
+    return data;
+  },
+
+  async deductCredits(n) {
+    const profile = this.get();
+    if (!profile || profile.credits < n) return false;
+    const sb = getSupabase();
+    const newVal = profile.credits - n;
+    const { error } = await sb.from("profiles")
+      .update({ credits: newVal })
+      .eq("id", profile.id);
+    if (error) return false;
+    // Log debit
+    await sb.from("transactions").insert({
+      user_id: profile.id, type: "debit",
+      label: "Plan generation", amount: n, naira: 0
+    });
+    profile.credits = newVal;
+    this.set(profile);
+    return true;
+  },
+
+  async addCredits(n, naira, ref, label) {
+    const profile = this.get();
+    if (!profile) return false;
+    const sb = getSupabase();
+    const newVal = (profile.credits || 0) + n;
+    await sb.from("profiles").update({ credits: newVal }).eq("id", profile.id);
+    await sb.from("transactions").insert({
+      user_id: profile.id, type: "credit",
+      label: label || `Top-up: ${n} credits`,
+      amount: n, naira: naira || 0, reference: ref || ""
+    });
+    profile.credits = newVal;
+    this.set(profile);
+    return true;
+  },
+};
+
+// ============================================================
+//  Toast notifications
+// ============================================================
+function showToast(msg, type = "info", duration = 3500) {
+  const existing = document.getElementById("ep-toast");
+  if (existing) existing.remove();
+  const icons = { success: "✓", error: "✕", info: "ℹ", warning: "⚠" };
+  const t = document.createElement("div");
+  t.id = "ep-toast";
+  t.className = `ep-toast ep-toast--${type}`;
+  t.innerHTML = `<span class="ep-toast-icon">${icons[type]||"ℹ"}</span><span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add("ep-toast--show"), 10);
+  setTimeout(() => {
+    t.classList.remove("ep-toast--show");
+    setTimeout(() => t.remove(), 350);
+  }, duration);
+}
+
+function fmtNaira(n) { return "₦" + Number(n).toLocaleString("en-NG"); }
