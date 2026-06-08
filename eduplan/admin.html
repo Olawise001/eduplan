@@ -688,8 +688,10 @@ async function addStaff() {
 
   // Use Edge Function to create staff — bypasses all RLS restrictions
   try {
-    const { data: { session } } = await sb.auth.getSession();
+    const sbClient = getSupabase();
+    const { data: { session } } = await sbClient.auth.getSession();
     const authToken = session?.access_token || "";
+    console.log("Using token:", authToken ? "present" : "MISSING");
 
     const resp = await fetch(
       `${EDUPLAN_CONFIG.SUPABASE_URL}/functions/v1/create-staff`,
