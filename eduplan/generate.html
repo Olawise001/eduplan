@@ -198,6 +198,20 @@
               <label>Class <span class="req">*</span></label>
               <select class="ep-select" id="grade" onchange="updateSubjects()">
                 <option value="">Select class</option>
+                <optgroup label="Pre-Primary">
+                  <option value="Pre-Nursery">Pre-Nursery</option>
+                  <option value="Nursery 1">Nursery 1</option>
+                  <option value="Nursery 2">Nursery 2</option>
+                  <option value="Nursery 3">Nursery 3</option>
+                </optgroup>
+                <optgroup label="Primary">
+                  <option value="Primary 1">Primary 1</option>
+                  <option value="Primary 2">Primary 2</option>
+                  <option value="Primary 3">Primary 3</option>
+                  <option value="Primary 4">Primary 4</option>
+                  <option value="Primary 5">Primary 5</option>
+                  <option value="Primary 6">Primary 6</option>
+                </optgroup>
                 <optgroup label="Junior Secondary">
                   <option value="JSS1">JSS 1</option>
                   <option value="JSS2">JSS 2</option>
@@ -318,10 +332,30 @@
               <label>Class <span class="req">*</span></label>
               <select class="ep-select" id="off-grade">
                 <option value="">Select class</option>
-                <optgroup label="Nursery"><option>Nursery 1</option><option>Nursery 2</option></optgroup>
-                <optgroup label="Grade School"><option>Grade 1</option><option>Grade 2</option><option>Grade 3</option><option>Grade 4</option><option>Grade 5</option></optgroup>
-                <optgroup label="Junior Secondary"><option>JSS 1</option><option>JSS 2</option><option>JSS 3</option></optgroup>
-                <optgroup label="Senior Secondary"><option>SS 1</option><option>SS 2</option><option>SS 3</option></optgroup>
+                <optgroup label="Pre-Primary">
+                  <option>Pre-Nursery</option>
+                  <option>Nursery 1</option>
+                  <option>Nursery 2</option>
+                  <option>Nursery 3</option>
+                </optgroup>
+                <optgroup label="Primary">
+                  <option>Primary 1</option>
+                  <option>Primary 2</option>
+                  <option>Primary 3</option>
+                  <option>Primary 4</option>
+                  <option>Primary 5</option>
+                  <option>Primary 6</option>
+                </optgroup>
+                <optgroup label="Junior Secondary">
+                  <option>JSS 1</option>
+                  <option>JSS 2</option>
+                  <option>JSS 3</option>
+                </optgroup>
+                <optgroup label="Senior Secondary">
+                  <option>SS 1</option>
+                  <option>SS 2</option>
+                  <option>SS 3</option>
+                </optgroup>
               </select>
             </div>
             <div class="ep-form-group">
@@ -550,10 +584,41 @@ async function generate() {
   document.getElementById("outTitle").textContent = `${v.subject} — ${v.topic}`;
   document.getElementById("outMeta").textContent  = `${v.schoolName} · ${v.grade} · ${v.term} · ${v.duration}`;
 
+  const isNursery   = v.grade.startsWith("Nursery") || v.grade.startsWith("Pre-Nursery");
+  const isPrimary   = v.grade.startsWith("Primary");
   const isSecondary = v.grade.startsWith("SS") || v.grade.startsWith("JSS");
   const isJSS       = v.grade.startsWith("JSS");
 
-  const prompt = `You are an expert Nigerian school lesson plan writer (NERDC 2025 curriculum).
+  const levelRules = isNursery
+    ? `This is a NURSERY/PRE-NURSERY class. Use very simple, play-based, activity-driven language.
+- Objectives: observable behaviours (e.g. "Pupils will be able to identify...")
+- Teacher activities: songs, rhymes, demonstrations, games, storytelling
+- Pupil activities: clapping, singing, touching, pointing, playing, colouring
+- Assignment: simple take-home activity involving parents
+- rationale: fill with early childhood justification
+- referenceMaterial: fill (e.g. NAPPS curriculum guide)
+- references: leave empty
+- learningStrategy: leave empty`
+    : isPrimary
+    ? `This is a PRIMARY school class. Use age-appropriate, concrete, activity-based language.
+- Use Nigerian primary school English throughout
+- rationale: fill with educational justification
+- referenceMaterial: fill (e.g. NERDC Primary curriculum)
+- references: fill
+- learningStrategy: leave empty`
+    : isJSS
+    ? `This is a JUNIOR SECONDARY class.
+- rationale: fill
+- references: fill
+- referenceMaterial: leave empty
+- learningStrategy: fill for each step`
+    : `This is a SENIOR SECONDARY class.
+- rationale: leave empty
+- references: fill
+- referenceMaterial: leave empty
+- learningStrategy: fill for each step`;
+
+  const prompt = `You are an expert Nigerian school lesson plan writer (NERDC/NAPPS curriculum).
 
 Generate a complete, practical lesson plan. Return STRICT JSON only — no markdown, no explanation.
 
@@ -574,14 +639,13 @@ JSON shape:
   "assignment": ["","",""]
 }
 
-Rules:
-- Subject-specific, age-appropriate content.
-- Minimum 4 presentation steps.
-- rationale: fill if class is JSS (junior) or Primary. Empty string for SS.
-- referenceMaterial: fill for Grade school. Empty for others.
-- references: fill for Secondary (JSS/SS). Empty for Primary.
-- learningStrategy: fill for all secondary (JSS/SS). Empty string for primary/nursery.
-- Use proper Nigerian educational language.
+Level-specific rules:
+${levelRules}
+
+General rules:
+- Minimum 4 presentation steps for all levels
+- Subject-specific, age-appropriate content
+- Use proper Nigerian educational language throughout
 
 Lesson details:
 School: ${v.schoolName}
