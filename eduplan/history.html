@@ -175,6 +175,8 @@
 <script>
 const sb = getSupabase();
 let user = Auth.get(); // cached
+let plans = []; // declared at top level so all functions can access it
+let activePlanId = null;
 
 (async () => {
   await Auth.requireAuth();
@@ -185,7 +187,7 @@ if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
   document.getElementById("schoolSection").style.display = "";
 }
 
-let plans = [];
+// Load plans
 if (user.id && user.id !== "demo") {
   const { data, error } = await sb.from("plans")
     .select("*")
@@ -206,14 +208,13 @@ if (user.id && user.id !== "demo") {
 } else {
   plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
 }
-let activePlanId = null;
-
 // Populate subject filter
 const subjects = [...new Set(plans.map(p=>p.subject).filter(Boolean))].sort();
 const subjectSel = document.getElementById("filterSubject");
 subjects.forEach(s => { const o = document.createElement("option"); o.value=s; o.textContent=s; subjectSel.appendChild(o); });
 
-// Stats
+renderStats();
+renderList();
 })();
 
 function renderStats() {
@@ -368,9 +369,6 @@ function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("o
 document.getElementById("previewModal").addEventListener("click", e => {
   if (e.target === e.currentTarget) closeModal();
 });
-
-renderStats();
-renderList();
 </script>
 </body>
 </html>
