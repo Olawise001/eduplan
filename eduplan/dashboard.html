@@ -180,6 +180,8 @@ async function init() {
   if (!ok) return;
 
   const user = Auth.get();
+  if (!user) { window.location.href = "login.html"; return; }
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   document.getElementById("welcomeMsg").textContent = `${greeting}, ${(user.name||"Teacher").split(" ")[0]}!`;
