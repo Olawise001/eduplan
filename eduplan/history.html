@@ -3,50 +3,36 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>History — EduPlan</title>
+<title>Review Plans — EduPlan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="assets/style.css"/>
 <style>
-.ep-filter-bar {
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  background:#fff; border:1px solid var(--border); border-radius:var(--r-lg);
-  padding:14px 18px; margin-bottom:24px; box-shadow:var(--shadow-sm);
-}
-.ep-filter-bar select { max-width:170px; }
-.ep-plan-row {
-  display:flex; align-items:center; gap:14px; padding:16px;
+.ep-review-row {
+  display:flex; align-items:flex-start; gap:14px; padding:18px 20px;
   border-bottom:1px solid var(--border); transition:background .12s;
-  cursor:pointer;
 }
-.ep-plan-row:last-child { border-bottom:none; }
-.ep-plan-row:hover { background:var(--paler); }
-.ep-plan-row__icon { width:40px; height:40px; background:var(--paler); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.ep-plan-row__icon svg { width:18px; height:18px; stroke:var(--pine); fill:none; stroke-width:2; stroke-linecap:round; }
-.ep-plan-row__info { flex:1; min-width:0; }
-.ep-plan-row__title { font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ep-plan-row__meta  { font-size:11px; color:var(--ink-soft); margin-top:3px; }
-.ep-plan-row__actions { display:flex; gap:6px; }
-
-/* Term group headers */
-.ep-term-header {
-  display:flex; align-items:center; gap:12px;
-  padding:12px 0 8px; margin-top:8px;
+.ep-review-row:last-child { border-bottom:none; }
+.ep-review-row:hover { background:var(--paler); }
+.ep-review-row__icon { width:42px; height:42px; background:var(--paler); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+.ep-review-row__icon svg { width:18px; height:18px; stroke:var(--pine); fill:none; stroke-width:2; stroke-linecap:round; }
+.ep-review-row__info { flex:1; min-width:0; }
+.ep-review-row__title { font-size:14px; font-weight:700; color:var(--ink); }
+.ep-review-row__meta  { font-size:12px; color:var(--ink-soft); margin-top:3px; }
+.ep-review-row__note  { font-size:12px; color:var(--ink-mid); margin-top:6px; font-style:italic; }
+.ep-review-row__actions { display:flex; gap:6px; flex-wrap:wrap; padding-top:2px; }
+.ep-tab-pills { display:flex; gap:4px; background:var(--paper-dark); border-radius:var(--r-lg); padding:4px; margin-bottom:24px; }
+.ep-tab-pill {
+  flex:1; padding:9px 14px; border-radius:var(--r); border:none; background:none;
+  font-family:inherit; font-size:13px; font-weight:600; cursor:pointer;
+  color:var(--ink-soft); transition:all .18s; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;
 }
-.ep-term-header h3 { font-family:'Playfair Display',serif; font-size:15px; color:var(--forest); font-weight:700; }
-.ep-term-header__count { font-size:11px; color:var(--ink-soft); background:var(--paper-dark); border:1px solid var(--border-mid); border-radius:20px; padding:2px 10px; }
-
-/* Preview modal */
-.ep-preview-content { max-height:65vh; overflow-y:auto; font-size:13px; line-height:1.7; }
-.ep-preview-content table { width:100%; border-collapse:collapse; font-size:11px; margin:10px 0; }
-.ep-preview-content th { background:var(--paler); border:1px solid var(--border-mid); padding:6px 8px; font-size:10px; text-align:left; }
-.ep-preview-content td { border:1px solid var(--border-mid); padding:6px 8px; vertical-align:top; }
-
-/* Stats bar */
-.ep-history-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:24px; }
-.ep-history-stat { background:#fff; border-radius:var(--r-lg); border:1px solid var(--border); padding:14px 16px; box-shadow:var(--shadow-sm); }
-.ep-history-stat__label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin-bottom:6px; }
-.ep-history-stat__val { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--forest); }
+.ep-tab-pill.active { background:#fff; color:var(--forest); box-shadow:var(--shadow-sm); }
+.ep-tab-pill .ep-count { background:var(--sage); color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:20px; }
+.ep-tab-pill.active .ep-count { background:var(--forest); }
+.ep-empty-state { padding:56px 20px; text-align:center; }
+.ep-empty-state svg { margin:0 auto 16px; display:block; opacity:.3; }
+.ep-empty-state p { color:var(--ink-soft); font-size:14px; }
 </style>
 </head>
 <body>
@@ -75,12 +61,11 @@
       <a href="dashboard.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
       <a href="generate.html"  class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Generate Plan</a>
       <a href="submit.html"    class="ep-sidebar__link"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit Plan</a>
-      <a href="history.html"   class="ep-sidebar__link active"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>History</a>
+      <a href="history.html"   class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>History</a>
     </div>
-    <div class="ep-sidebar__section" id="schoolSection" style="display:none;">
+    <div class="ep-sidebar__section">
       <div class="ep-sidebar__label">School</div>
-      <a href="review.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Plans</a>
-      <a href="admin.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>School Admin</a>
+      <a href="review.html" class="ep-sidebar__link active"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Plans</a>
     </div>
     <div class="ep-sidebar__section">
       <div class="ep-sidebar__label">Account</div>
@@ -96,77 +81,79 @@
 
   <main class="ep-main">
     <div class="ep-page-header">
-      <div class="ep-page-header__eyebrow">Records</div>
-      <h1>Plan History</h1>
-      <p>All your saved and submitted lesson plans — filtered by term, subject, or status. Click any plan to preview or download.</p>
+      <div class="ep-page-header__eyebrow">School Review</div>
+      <h1>Review Submitted Plans</h1>
+      <p id="reviewSubtitle">Plans submitted to you for approval. Approve to confirm, or return with a comment.</p>
     </div>
 
-    <!-- Stats -->
-    <div class="ep-history-stats" id="histStats"></div>
-
-    <!-- Filters -->
-    <div class="ep-filter-bar">
-      <svg viewBox="0 0 24 24" width="16" height="16" stroke="var(--ink-soft)" fill="none" stroke-width="2" stroke-linecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-      <select class="ep-select" id="filterTerm" onchange="renderList()">
-        <option value="">All Terms</option>
-        <option>First Term</option>
-        <option>Second Term</option>
-        <option>Third Term</option>
-      </select>
-      <select class="ep-select" id="filterStatus" onchange="renderList()">
-        <option value="">All Statuses</option>
-        <option value="draft">Draft</option>
-        <option value="pending">Pending Review</option>
-        <option value="approved">Approved</option>
-        <option value="returned">Returned</option>
-      </select>
-      <select class="ep-select" id="filterSubject" onchange="renderList()">
-        <option value="">All Subjects</option>
-      </select>
-      <input class="ep-input" id="filterSearch" type="search" placeholder="Search by topic…" oninput="renderList()" style="max-width:220px;"/>
-      <button class="ep-btn ep-btn--ghost ep-btn--sm" onclick="clearFilters()">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        Clear
+    <!-- Tabs -->
+    <div class="ep-tab-pills">
+      <button class="ep-tab-pill active" id="tabPending"  onclick="setTab('pending')">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Pending
+        <span class="ep-count" id="cntPending">0</span>
       </button>
-      <a href="generate.html" class="ep-btn ep-btn--primary ep-btn--sm" style="margin-left:auto;">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        New plan
-      </a>
+      <button class="ep-tab-pill" id="tabApproved" onclick="setTab('approved')">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Approved
+        <span class="ep-count" id="cntApproved">0</span>
+      </button>
+      <button class="ep-tab-pill" id="tabReturned" onclick="setTab('returned')">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+        Returned
+        <span class="ep-count" id="cntReturned">0</span>
+      </button>
     </div>
 
-    <!-- List -->
-    <div class="ep-card" id="histCard">
-      <div id="histList"></div>
+    <!-- Plan list -->
+    <div class="ep-card" id="reviewCard">
+      <div id="reviewList"></div>
     </div>
 
   </main>
 </div>
 
-<!-- Preview Modal -->
-<div class="ep-modal-overlay" id="previewModal">
-  <div class="ep-modal ep-modal--lg">
+<!-- Return Comment Modal -->
+<div class="ep-modal-overlay" id="returnModal">
+  <div class="ep-modal">
     <div class="ep-modal__head">
-      <h3 id="previewTitle">Lesson Plan Preview</h3>
-      <button class="ep-modal__close" onclick="closeModal()">×</button>
+      <h3>Return with Comment</h3>
+      <button class="ep-modal__close" onclick="closeReturnModal()">×</button>
     </div>
     <div class="ep-modal__body">
-      <div class="ep-preview-content" id="previewContent"></div>
+      <p style="font-size:14px;color:var(--ink-mid);margin-bottom:16px;">
+        The teacher will see your comment and can revise and resubmit.
+      </p>
+      <div class="ep-form-group">
+        <label>Comment / Reason for Return <span class="req">*</span></label>
+        <textarea class="ep-textarea" id="returnComment" style="min-height:100px;" placeholder="e.g. Please revise the presentation steps to include more pupil activities…"></textarea>
+      </div>
+      <div class="ep-form-group" style="margin-top:12px;">
+        <label>Suggested Correction (optional)</label>
+        <input class="ep-input" id="returnSuggestion" type="text" placeholder="e.g. Add more pupil activities in step 3"/>
+      </div>
     </div>
     <div class="ep-modal__footer">
-      <button class="ep-btn ep-btn--ghost ep-btn--sm" onclick="closeModal()">Close</button>
-      <button class="ep-btn ep-btn--danger ep-btn--sm" id="deleteBtn">
-        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        Delete
-      </button>
-      <button class="ep-btn ep-btn--secondary ep-btn--sm" id="resubmitBtn">
-        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        Submit
-      </button>
-      <button class="ep-btn ep-btn--primary ep-btn--sm" id="downloadBtn">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download PDF
+      <button class="ep-btn ep-btn--ghost" onclick="closeReturnModal()">Cancel</button>
+      <button class="ep-btn ep-btn--danger" onclick="confirmReturn()">
+        <svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+        Return to teacher
       </button>
     </div>
+  </div>
+</div>
+
+<!-- View Plan Modal -->
+<div class="ep-modal-overlay" id="viewModal">
+  <div class="ep-modal ep-modal--lg">
+    <div class="ep-modal__head">
+      <h3 id="viewTitle">Lesson Plan</h3>
+      <button class="ep-modal__close" onclick="closeViewModal()">×</button>
+    </div>
+    <div class="ep-modal__body">
+      <div id="viewContent" style="max-height:65vh;overflow-y:auto;font-size:13px;line-height:1.7;"></div>
+    </div>
+    <div class="ep-modal__footer" id="viewFooter"></div>
   </div>
 </div>
 
@@ -175,200 +162,233 @@
 <script>
 const sb = getSupabase();
 let user = Auth.get(); // cached
-let plans = []; // declared at top level so all functions can access it
-let activePlanId = null;
 
 (async () => {
   await Auth.requireAuth();
   user = Auth.get();
 document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
 document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
-if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
-  document.getElementById("schoolSection").style.display = "";
+
+// Access control — only school superiors
+if (user.type !== "school" || !["principal","hod","admin"].includes(user.role)) {
+  document.querySelector(".ep-main").innerHTML = `
+    <div style="padding:60px 20px;text-align:center;">
+      <svg viewBox="0 0 24 24" width="48" height="48" stroke="var(--danger)" fill="none" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 16px;display:block;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <h2 style="font-family:'Playfair Display',serif;color:var(--forest);margin-bottom:8px;">Access Restricted</h2>
+      <p style="color:var(--ink-mid);margin-bottom:20px;">This page is only available to HOD, Principal, and Admin users on a school account.</p>
+      <a href="dashboard.html" class="ep-btn ep-btn--primary">Go to Dashboard</a>
+    </div>`;
 }
 
-// Load plans
-if (user.id && user.id !== "demo") {
-  const { data, error } = await sb.from("plans")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("saved_at", { ascending: false });
-  if (error) {
-    console.error("Plans fetch error:", error);
-    plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-  } else {
-    plans = data || [];
-  }
-  // Merge unsynced localStorage plans
-  const localPlans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-  const sbIds = new Set(plans.map(p => String(p.id)));
-  const unsynced = localPlans.filter(p => !sbIds.has(String(p.id)));
-  if (unsynced.length > 0) plans = [...plans, ...unsynced];
-  console.log("Total plans:", plans.length, "user:", user.id);
-} else {
-  plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-}
-// Populate subject filter
-const subjects = [...new Set(plans.map(p=>p.subject).filter(Boolean))].sort();
-const subjectSel = document.getElementById("filterSubject");
-subjects.forEach(s => { const o = document.createElement("option"); o.value=s; o.textContent=s; subjectSel.appendChild(o); });
+document.getElementById("reviewSubtitle").textContent =
+  user.role === "principal"
+    ? "Plans submitted to you (Principal) by HODs and teachers for final approval."
+    : user.role === "hod"
+    ? "Plans submitted to you (HOD) by teachers. Approve or return with feedback."
+    : "All plans in this school's review queue.";
 
-renderStats();
-renderList();
-})();
+// Load submissions from Supabase
+let plans = [];
+let allSubmitted = [];
+if (user.id && user.id !== "demo" && user.school_name) {
+  const { data: subs, error: subErr } = await sb.from("submissions")
+    .select("*, plans(*)")
+    .eq("school_name", user.school_name)
+    .order("submitted_at", { ascending: false });
 
-function renderStats() {
-  const total    = plans.length;
-  const approved = plans.filter(p=>p.status==="approved").length;
-  const pending  = plans.filter(p=>p.status==="pending").length;
-  const returned = plans.filter(p=>p.status==="returned").length;
-  document.getElementById("histStats").innerHTML = `
-    <div class="ep-history-stat"><div class="ep-history-stat__label">Total Plans</div><div class="ep-history-stat__val">${total}</div></div>
-    <div class="ep-history-stat"><div class="ep-history-stat__label">Approved</div><div class="ep-history-stat__val" style="color:var(--pine);">${approved}</div></div>
-    <div class="ep-history-stat"><div class="ep-history-stat__label">Pending</div><div class="ep-history-stat__val" style="color:var(--warning);">${pending}</div></div>
-    <div class="ep-history-stat"><div class="ep-history-stat__label">Returned</div><div class="ep-history-stat__val" style="color:var(--danger);">${returned}</div></div>
-  `;
-}
+  console.log("Submissions fetched:", subs?.length, "error:", subErr?.message, "user role:", user.role, "user id:", user.id);
 
-function renderList() {
-  const termF    = document.getElementById("filterTerm").value;
-  const statusF  = document.getElementById("filterStatus").value;
-  const subjectF = document.getElementById("filterSubject").value;
-  const searchF  = document.getElementById("filterSearch").value.toLowerCase();
-
-  let filtered = plans.filter(p => {
-    if (termF    && p.term    !== termF)    return false;
-    if (statusF  && (p.status||"draft") !== statusF)  return false;
-    if (subjectF && p.subject !== subjectF) return false;
-    if (searchF  && !(p.title||"").toLowerCase().includes(searchF) && !(p.topic||"").toLowerCase().includes(searchF)) return false;
-    return true;
+  // Admin sees all, others see only directed to them
+  const filteredSubs = (subs || []).filter(s => {
+    if (user.role === "admin") return true;
+    return String(s.submitted_to) === String(user.id) || s.submitted_to === user.role;
   });
 
-  const list = document.getElementById("histList");
+  console.log("Filtered submissions:", filteredSubs.length);
+  if (filteredSubs) {
+    allSubmitted = filteredSubs.map(s => ({
+      id:            s.plan_id,
+      subId:         s.id,
+      title:         s.plans?.title || "Lesson Plan",
+      class:         s.plans?.class || "",
+      subject:       s.plans?.subject || "",
+      term:          s.plans?.term || "",
+      meta:          s.plans?.meta || "",
+      status:        s.status,
+      submitNotes:   s.submit_notes,
+      reviewComment: s.review_comment,
+      submittedAt:   s.submitted_at ? new Date(s.submitted_at).toLocaleDateString("en-GB") : "",
+      approvedAt:    s.approved_at  ? new Date(s.approved_at).toLocaleDateString("en-GB")  : "",
+      html:          s.plans?.html || "",
+    }));
+  }
+} else {
+  plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  allSubmitted = plans.filter(p => ["pending","approved","returned"].includes(p.status||""));
+}
+
+let currentTab = "pending";
+let returnTargetId = null;
+let viewTargetId   = null;
+
+})();
+
+function setTab(tab) {
+  currentTab = tab;
+  ["pending","approved","returned"].forEach(t => {
+    document.getElementById("tab"+capitalize(t)).classList.toggle("active", t===tab);
+  });
+  updateCounts();
+  renderReviewList();
+}
+
+function updateCounts() {
+  document.getElementById("cntPending").textContent  = allSubmitted.filter(p=>p.status==="pending").length;
+  document.getElementById("cntApproved").textContent = allSubmitted.filter(p=>p.status==="approved").length;
+  document.getElementById("cntReturned").textContent = allSubmitted.filter(p=>p.status==="returned").length;
+}
+
+function renderReviewList() {
+  const filtered = allSubmitted.filter(p => (p.status||"pending") === currentTab);
+  const list = document.getElementById("reviewList");
 
   if (filtered.length === 0) {
-    list.innerHTML = `<div style="padding:48px;text-align:center;color:var(--ink-soft);">
-      <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 12px;display:block;opacity:.4;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <p>No plans found for the selected filters.</p>
-      <a href="generate.html" style="color:var(--sage);font-weight:600;font-size:14px;">Generate your first plan →</a>
+    list.innerHTML = `<div class="ep-empty-state">
+      <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+      <p>${currentTab === "pending" ? "No plans awaiting review." : currentTab === "approved" ? "No approved plans yet." : "No returned plans."}</p>
     </div>`;
     return;
   }
 
-  // Group by term
-  const terms = ["First Term","Second Term","Third Term",""];
-  const groups = {};
-  filtered.forEach(p => {
-    const t = p.term || "Other";
-    if (!groups[t]) groups[t] = [];
-    groups[t].push(p);
-  });
-
-  const termOrder = ["First Term","Second Term","Third Term","Other"];
-  let html = "";
-  termOrder.forEach(term => {
-    if (!groups[term]) return;
-    html += `<div class="ep-term-header">
-      <h3>${term}</h3>
-      <span class="ep-term-header__count">${groups[term].length} plan${groups[term].length!==1?"s":""}</span>
-    </div>`;
-    groups[term].forEach(p => {
-      const statusClass = p.status||"draft";
-      const statusLabel = capitalize(p.status||"draft");
-      html += `
-        <div class="ep-plan-row" onclick="openPlan(${p.id})">
-          <div class="ep-plan-row__icon">
-            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="ep-plan-row__info">
-            <div class="ep-plan-row__title">${esc(p.title||"Untitled Plan")}</div>
-            <div class="ep-plan-row__meta">${esc(p.class||"")} · ${esc(p.subject||"")} · Saved ${esc(p.savedAt||"")}${p.submittedAt?" · Submitted "+esc(p.submittedAt):""}</div>
-            ${p.reviewComment?`<div style="font-size:11px;color:var(--danger);margin-top:3px;">Reviewer note: ${esc(p.reviewComment)}</div>`:""}
-          </div>
-          <span class="ep-plan-status ep-plan-status--${statusClass}">${statusLabel}</span>
-          <div class="ep-plan-row__actions" onclick="event.stopPropagation()">
-            <button class="ep-btn ep-btn--ghost ep-btn--sm" onclick="openPlan(${p.id})">
-              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              View
-            </button>
-            <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="resubmitPlan(${p.id})">
-              <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              Resubmit
-            </button>
-          </div>
-        </div>`;
-    });
-  });
-
-  list.innerHTML = html;
+  list.innerHTML = filtered.map(p => `
+    <div class="ep-review-row">
+      <div class="ep-review-row__icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="ep-review-row__info">
+        <div class="ep-review-row__title">${esc(p.title||"Untitled Plan")}</div>
+        <div class="ep-review-row__meta">
+          ${esc(p.class||"")} · ${esc(p.subject||"")} · ${esc(p.term||"")}
+          · Submitted ${esc(p.submittedAt||"")}
+        </div>
+        ${p.submitNotes ? `<div class="ep-review-row__note">"${esc(p.submitNotes)}"</div>` : ""}
+        ${p.reviewComment && p.status==="returned" ? `<div style="font-size:12px;color:var(--danger);margin-top:4px;font-style:italic;">Your comment: "${esc(p.reviewComment)}"</div>` : ""}
+        ${p.approvedAt ? `<div style="font-size:11px;color:var(--pine);margin-top:3px;">Approved on ${esc(p.approvedAt)}</div>` : ""}
+      </div>
+      <div class="ep-review-row__actions">
+        <button class="ep-btn ep-btn--ghost ep-btn--sm" onclick="viewPlan(${p.id})">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          View
+        </button>
+        ${currentTab === "pending" ? `
+        <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="approvePlan(${p.id})">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Approve
+        </button>
+        <button class="ep-btn ep-btn--danger ep-btn--sm" onclick="openReturnModal(${p.id})">
+          <svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+          Return
+        </button>` : ""}
+        ${currentTab === "approved" ? `
+        <button class="ep-btn ep-btn--ghost ep-btn--sm" onclick="downloadPlan(${p.id})">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>` : ""}
+      </div>
+    </div>
+  `).join("");
 }
 
-function openPlan(id) {
-  activePlanId = id;
+async function approvePlan(id) {
+  const plan = allSubmitted.find(p=>p.id===id);
+  if (!plan) return;
+  if (user.id && user.id !== "demo") {
+    await sb.from("submissions").update({ status:"approved", approved_at: new Date().toISOString(), approved_by: user.name }).eq("plan_id", id);
+    await sb.from("plans").update({ status: "approved" }).eq("id", id);
+  } else {
+    const p2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+    const idx = p2.findIndex(p=>p.id===id);
+    if (idx!==-1){ p2[idx].status="approved"; localStorage.setItem("eduplan_plans", JSON.stringify(p2)); }
+  }
+  plan.status = "approved";
+  plan.approvedAt = new Date().toLocaleDateString("en-GB");
+  updateCounts();
+  renderReviewList();
+  showToast("Plan approved!", "success");
+}
+
+function openReturnModal(id) {
+  returnTargetId = id;
+  document.getElementById("returnComment").value = "";
+  document.getElementById("returnModal").classList.add("open");
+}
+
+function closeReturnModal() {
+  document.getElementById("returnModal").classList.remove("open");
+  returnTargetId = null;
+}
+
+async function confirmReturn() {
+  const comment = document.getElementById("returnComment").value.trim();
+  if (!comment) { alert("Please enter a comment explaining why the plan is being returned."); return; }
+  if (user.id && user.id !== "demo") {
+    const suggestion = document.getElementById("returnSuggestion")?.value?.trim() || "";
+    const fullComment = suggestion ? `${comment}
+
+Suggested correction: ${suggestion}` : comment;
+    await sb.from("submissions").update({ status:"returned", review_comment: fullComment, returned_at: new Date().toISOString() }).eq("plan_id", returnTargetId);
+    await sb.from("plans").update({ status:"returned" }).eq("id", returnTargetId);
+  } else {
+    const p2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+    const idx = p2.findIndex(p=>p.id===returnTargetId);
+    if (idx!==-1){ p2[idx].status="returned"; p2[idx].reviewComment=comment; localStorage.setItem("eduplan_plans",JSON.stringify(p2)); }
+  }
+  const plan = allSubmitted.find(p=>p.id===returnTargetId);
+  if (plan){ plan.status="returned"; plan.reviewComment=comment; }
+  closeReturnModal();
+  updateCounts();
+  renderReviewList();
+  showToast("Plan returned to teacher.", "info");
+}
+
+function viewPlan(id) {
+  viewTargetId = id;
   const p = plans.find(x=>x.id===id);
   if (!p) return;
-  document.getElementById("previewTitle").textContent = p.title || "Lesson Plan";
-  const content = document.getElementById("previewContent");
-  content.innerHTML = p.html
+  document.getElementById("viewTitle").textContent = p.title||"Lesson Plan";
+  document.getElementById("viewContent").innerHTML = p.html
     ? `<div style="font-size:13px;">${p.html}</div>`
-    : `<p style="color:var(--ink-soft);font-style:italic;">No preview available for this plan.</p>`;
-
-  // Wire buttons
-  document.getElementById("deleteBtn").onclick    = () => deletePlan(id);
-  document.getElementById("resubmitBtn").onclick  = () => { closeModal(); window.location.href="submit.html"; };
-  document.getElementById("downloadBtn").onclick  = () => downloadPlan(p);
-
-  document.getElementById("previewModal").classList.add("open");
-}
-
-function closeModal() {
-  document.getElementById("previewModal").classList.remove("open");
-  activePlanId = null;
-}
-
-async function deletePlan(id) {
-  if (!confirm("Delete this plan? This cannot be undone.")) return;
-  if (user.id && user.id !== "demo") {
-    await sb.from("plans").delete().eq("id", id);
-  } else {
-    plans = plans.filter(p=>p.id!==id);
-    localStorage.setItem("eduplan_plans", JSON.stringify(plans));
+    : `<p style="color:var(--ink-soft);font-style:italic;">No preview content.</p>`;
+  const footer = document.getElementById("viewFooter");
+  footer.innerHTML = `<button class="ep-btn ep-btn--ghost" onclick="closeViewModal()">Close</button>`;
+  if (p.status === "pending") {
+    footer.innerHTML += `
+      <button class="ep-btn ep-btn--danger ep-btn--sm" onclick="closeViewModal();openReturnModal(${id})">Return</button>
+      <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="closeViewModal();approvePlan(${id})">Approve</button>`;
   }
-  plans = plans.filter(p=>p.id!==id);
-  closeModal();
-  renderStats();
-  renderList();
-  showToast("Plan deleted.", "info");
+  document.getElementById("viewModal").classList.add("open");
 }
 
-function downloadPlan(p) {
-  if (!p.html) { alert("No content to download."); return; }
-  const blob = new Blob(["\ufeff<html><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;font-size:12pt;padding:24px}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #000;padding:6px 8px;font-size:11pt;vertical-align:top}th{background:#e8f5ee;font-size:10pt}</style></head><body>"+p.html+"</body></html>"],{type:"application/msword"});
+function closeViewModal() { document.getElementById("viewModal").classList.remove("open"); }
+
+function downloadPlan(id) {
+  const p = plans.find(x=>x.id===id);
+  if (!p || !p.html) { alert("No content available."); return; }
+  const blob = new Blob(["\ufeff<html><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;font-size:12pt;padding:24px}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #000;padding:6px 8px;font-size:11pt;vertical-align:top}th{background:#e8f5ee}</style></head><body>"+p.html+"</body></html>"],{type:"application/msword"});
   const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=(p.title||"lesson-plan")+".doc"; a.click();
 }
 
-function clearFilters() {
-  document.getElementById("filterTerm").value    = "";
-  document.getElementById("filterStatus").value  = "";
-  document.getElementById("filterSubject").value = "";
-  document.getElementById("filterSearch").value  = "";
-  renderList();
-}
-
-function resubmitPlan(id) {
-  // Store plan id and redirect to submit page
-  localStorage.setItem("resubmit_plan_id", id);
-  window.location.href = "submit.html";
-}
+document.getElementById("returnModal").addEventListener("click", e => { if(e.target===e.currentTarget) closeReturnModal(); });
+document.getElementById("viewModal").addEventListener("click",   e => { if(e.target===e.currentTarget) closeViewModal(); });
 
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
 
-// Close modal on overlay click
-document.getElementById("previewModal").addEventListener("click", e => {
-  if (e.target === e.currentTarget) closeModal();
-});
+updateCounts();
+renderReviewList();
 </script>
 </body>
 </html>
