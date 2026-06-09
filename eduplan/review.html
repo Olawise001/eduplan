@@ -196,7 +196,7 @@ document.getElementById("reviewSubtitle").textContent =
 if (user.id && user.id !== "demo" && user.school_name) {
   const { data: subs, error: subErr } = await sb.from("submissions")
     .select("*, plans(*)")
-    .eq("school_name", user.school_name)
+    .eq("school_id", user.school_id)
     .order("submitted_at", { ascending: false });
 
   console.log("Submissions fetched:", subs?.length, "error:", subErr?.message, "user role:", user.role, "user id:", user.id);

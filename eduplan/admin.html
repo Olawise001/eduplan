@@ -516,7 +516,13 @@ let currentTab = "staff";
   document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
   document.getElementById("schoolTitle").textContent = user.school_name || "School Admin";
   document.getElementById("schoolSubtitle").textContent = `${user.school_name || "Your school"} · ${user.state || ""} · Manage staff, plans and credits`;
-  document.getElementById("schoolCredits").textContent  = user.credits || 0;
+  // Load school credits from schools table
+  if (user.school_id) {
+    const { data: schoolData } = await sb.from("schools").select("credits, subscription_status").eq("id", user.school_id).single();
+    document.getElementById("schoolCredits").textContent = schoolData?.credits || user.credits || 0;
+  } else {
+    document.getElementById("schoolCredits").textContent = user.credits || 0;
+  }
 
   // Populate settings fields
   document.getElementById("settSchoolName").value    = user.school_name    || "";
@@ -550,7 +556,7 @@ async function loadStaff(retries = 3) {
   try {
     const { data, error } = await sb.from("profiles")
       .select("*")
-      .eq("school_name", user.school_name)
+      .eq("school_id", user.school_id)
       .eq("type", "school")
       .order("name");
 
