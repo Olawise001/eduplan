@@ -194,9 +194,11 @@ async function init() {
   document.getElementById("menuName").textContent    = user.name || "";
   document.getElementById("menuEmail").textContent   = user.email || "";
 
-  if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
+  if (user.type === "school" && ["principal","hod","admin","vp"].includes(user.role)) {
     document.getElementById("schoolSection").style.display = "";
     document.getElementById("statPendingCard").style.display = "";
+  }
+  if (user.type === "school" && user.role === "admin") {
     document.getElementById("adminCard").style.display = "";
   }
   if (credits < 10) {

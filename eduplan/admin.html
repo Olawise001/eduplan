@@ -305,6 +305,36 @@
         </div>
       </div>
 
+      <!-- Subject & Topic Management -->
+      <div class="ep-card" style="margin-bottom:20px;">
+        <div class="ep-card__head">
+          <div class="ep-card__icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+          <span class="ep-card__title">School Subjects</span>
+          <span class="ep-card__meta" style="font-size:11px;color:var(--ink-soft);">Subjects your school teaches</span>
+        </div>
+        <div class="ep-card__body">
+          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;">
+            Add custom subjects specific to your school. These will appear in the Generate Plan subject dropdown for all your staff.
+          </p>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+            <input class="ep-input" id="newSubjectInput" type="text" placeholder="e.g. Yoruba Language, Agricultural Science" style="flex:1;min-width:200px;"/>
+            <select class="ep-select" id="newSubjectLevel" style="max-width:160px;">
+              <option value="all">All Levels</option>
+              <option value="primary">Primary</option>
+              <option value="jss">JSS</option>
+              <option value="ss">SS</option>
+            </select>
+            <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="addCustomSubject()">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Subject
+            </button>
+          </div>
+          <div id="customSubjectsList" style="display:flex;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:13px;color:var(--ink-soft);font-style:italic;">No custom subjects added yet.</span>
+          </div>
+        </div>
+      </div>
+
       <div class="ep-card">
         <div class="ep-card__head">
           <div class="ep-card__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
@@ -466,12 +496,12 @@ let currentTab = "staff";
     }
 
     // Access control
-    if (user?.type !== "school" || !["principal","hod","admin"].includes(user?.role)) {
+    if (user?.type !== "school" || user?.role !== "admin") {
       document.querySelector(".ep-main").innerHTML = `
         <div style="padding:60px 20px;text-align:center;">
           <svg viewBox="0 0 24 24" width="48" height="48" stroke="var(--danger)" fill="none" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 16px;display:block;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
           <h2 style="font-family:'Playfair Display',serif;color:var(--forest);margin-bottom:8px;">Access Restricted</h2>
-          <p style="color:var(--ink-mid);margin-bottom:10px;">School Admin is only available to Principal, Admin, and HOD accounts.</p>
+          <p style="color:var(--ink-mid);margin-bottom:10px;">School Admin is only available to the School Administrator account.</p>
           <p style="font-size:12px;color:var(--ink-soft);background:var(--paper-dark);border-radius:var(--r);padding:10px;margin-bottom:20px;">
             Current profile: type = <strong>${user?.type||"none"}</strong> · role = <strong>${user?.role||"none"}</strong>
           </p>
@@ -498,6 +528,7 @@ let currentTab = "staff";
   document.getElementById("settEmail").value         = user.email          || "";
 
   await loadAll();
+  loadCustomSubjects();
 } catch(err) {
   console.error("Admin init error:", err);
   document.querySelector(".ep-main").innerHTML = `
@@ -515,15 +546,34 @@ async function loadAll() {
 }
 
 // ── Load staff ────────────────────────────────────────────────────────
-async function loadStaff() {
-  const { data } = await sb.from("profiles")
-    .select("*")
-    .eq("school_name", user.school_name)
-    .eq("type", "school")
-    .order("name");
-  allStaff = data || [];
-  document.getElementById("cntStaff").textContent = allStaff.length;
-  renderStaff(allStaff);
+async function loadStaff(retries = 3) {
+  try {
+    const { data, error } = await sb.from("profiles")
+      .select("*")
+      .eq("school_name", user.school_name)
+      .eq("type", "school")
+      .order("name");
+
+    if (error) throw error;
+
+    allStaff = data || [];
+    document.getElementById("cntStaff").textContent = allStaff.length;
+    renderStaff(allStaff);
+  } catch (err) {
+    if (retries > 0) {
+      console.warn(`loadStaff failed, retrying... (${retries} left)`);
+      setTimeout(() => loadStaff(retries - 1), 2000);
+    } else {
+      document.getElementById("staffList").innerHTML = `
+        <div style="padding:32px;text-align:center;color:var(--ink-soft);">
+          <p style="margin-bottom:12px;">Could not load staff — network issue.</p>
+          <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="loadStaff()">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Retry
+          </button>
+        </div>`;
+    }
+  }
 }
 
 function renderStaff(list) {
@@ -571,19 +621,32 @@ function filterStaff() {
 }
 
 // ── Load plans ────────────────────────────────────────────────────────
-async function loadPlans() {
-  // Get all plans from staff in this school
-  const staffIds = allStaff.map(s => s.id);
-  if (staffIds.length === 0) { allPlans = []; document.getElementById("cntPlans").textContent = 0; return; }
+async function loadPlans(retries = 3) {
+  try {
+    const staffIds = allStaff.map(s => s.id);
+    if (staffIds.length === 0) { allPlans = []; document.getElementById("cntPlans").textContent = 0; renderPlans([]); return; }
 
-  const { data } = await sb.from("plans")
-    .select("*, profiles(name, role)")
-    .in("user_id", staffIds)
-    .order("saved_at", { ascending: false });
+    const { data, error } = await sb.from("plans")
+      .select("*, profiles(name, role)")
+      .in("user_id", staffIds)
+      .order("saved_at", { ascending: false });
 
-  allPlans = data || [];
-  document.getElementById("cntPlans").textContent = allPlans.length;
-  renderPlans(allPlans);
+    if (error) throw error;
+
+    allPlans = data || [];
+    document.getElementById("cntPlans").textContent = allPlans.length;
+    renderPlans(allPlans);
+  } catch (err) {
+    if (retries > 0) {
+      setTimeout(() => loadPlans(retries - 1), 2000);
+    } else {
+      document.getElementById("plansList").innerHTML = `
+        <div style="padding:32px;text-align:center;color:var(--ink-soft);">
+          <p style="margin-bottom:12px;">Could not load plans — network issue.</p>
+          <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="loadPlans()">Retry</button>
+        </div>`;
+    }
+  }
 }
 
 function renderPlans(list) {
@@ -824,6 +887,45 @@ function timeAgo(date) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return new Date(date).toLocaleDateString("en-GB");
+}
+
+// ── Custom Subjects Management ───────────────────────────────────────
+function loadCustomSubjects() {
+  const subjects = JSON.parse(localStorage.getItem(`eduplan_subjects_${user.school_name}`) || "[]");
+  const el = document.getElementById("customSubjectsList");
+  if (subjects.length === 0) {
+    el.innerHTML = '<span style="font-size:13px;color:var(--ink-soft);font-style:italic;">No custom subjects added yet.</span>';
+    return;
+  }
+  el.innerHTML = subjects.map((s, i) => `
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--paler);border:1px solid var(--pale);border-radius:20px;padding:4px 12px;font-size:13px;">
+      <span>${esc(s.name)}</span>
+      <span style="font-size:10px;color:var(--ink-soft);">(${s.level})</span>
+      <button onclick="removeCustomSubject(${i})" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:16px;line-height:1;padding:0 2px;">×</button>
+    </div>
+  `).join("");
+}
+
+function addCustomSubject() {
+  const name  = document.getElementById("newSubjectInput").value.trim();
+  const level = document.getElementById("newSubjectLevel").value;
+  if (!name) { showToast("Enter a subject name.", "warning"); return; }
+  const subjects = JSON.parse(localStorage.getItem(`eduplan_subjects_${user.school_name}`) || "[]");
+  if (subjects.find(s => s.name.toLowerCase() === name.toLowerCase())) {
+    showToast("Subject already exists.", "warning"); return;
+  }
+  subjects.push({ name, level });
+  localStorage.setItem(`eduplan_subjects_${user.school_name}`, JSON.stringify(subjects));
+  document.getElementById("newSubjectInput").value = "";
+  loadCustomSubjects();
+  showToast(`${name} added to school subjects.`, "success");
+}
+
+function removeCustomSubject(index) {
+  const subjects = JSON.parse(localStorage.getItem(`eduplan_subjects_${user.school_name}`) || "[]");
+  subjects.splice(index, 1);
+  localStorage.setItem(`eduplan_subjects_${user.school_name}`, JSON.stringify(subjects));
+  loadCustomSubjects();
 }
 
 function fixProfile() {

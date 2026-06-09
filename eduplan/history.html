@@ -187,12 +187,22 @@ if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
 
 let plans = [];
 if (user.id && user.id !== "demo") {
-  const { data } = await sb.from("plans")
+  const { data, error } = await sb.from("plans")
     .select("*")
     .eq("user_id", user.id)
     .order("saved_at", { ascending: false });
-  plans = data || [];
-  console.log("Plans loaded:", plans.length, plans);
+  if (error) {
+    console.error("Plans fetch error:", error);
+    plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  } else {
+    plans = data || [];
+  }
+  // Merge unsynced localStorage plans
+  const localPlans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  const sbIds = new Set(plans.map(p => String(p.id)));
+  const unsynced = localPlans.filter(p => !sbIds.has(String(p.id)));
+  if (unsynced.length > 0) plans = [...plans, ...unsynced];
+  console.log("Total plans:", plans.length, "user:", user.id);
 } else {
   plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
 }
@@ -280,6 +290,10 @@ function renderList() {
               <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               View
             </button>
+            <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="resubmitPlan(${p.id})">
+              <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Resubmit
+            </button>
           </div>
         </div>`;
     });
@@ -338,6 +352,12 @@ function clearFilters() {
   document.getElementById("filterSubject").value = "";
   document.getElementById("filterSearch").value  = "";
   renderList();
+}
+
+function resubmitPlan(id) {
+  // Store plan id and redirect to submit page
+  localStorage.setItem("resubmit_plan_id", id);
+  window.location.href = "submit.html";
 }
 
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }

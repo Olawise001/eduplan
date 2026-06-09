@@ -162,6 +162,18 @@ let user = Auth.get();
     await loadSuperiors();
   }
 
+  // Auto-select plan if coming from history resubmit
+  const resubmitId = localStorage.getItem("resubmit_plan_id");
+  if (resubmitId) {
+    localStorage.removeItem("resubmit_plan_id");
+    // Reset status to draft so it can be resubmitted
+    if (user.id && user.id !== "demo") {
+      await sb.from("plans").update({ status: "draft" }).eq("id", resubmitId);
+    }
+    selectPlan(Number(resubmitId));
+    showToast("Plan ready to resubmit — select who to send it to.", "info", 4000);
+  }
+
 })();
 
 async function loadSuperiors() {

@@ -128,6 +128,10 @@
         <label>Comment / Reason for Return <span class="req">*</span></label>
         <textarea class="ep-textarea" id="returnComment" style="min-height:100px;" placeholder="e.g. Please revise the presentation steps to include more pupil activities…"></textarea>
       </div>
+      <div class="ep-form-group" style="margin-top:12px;">
+        <label>Suggested Correction (optional)</label>
+        <input class="ep-input" id="returnSuggestion" type="text" placeholder="e.g. Add more pupil activities in step 3"/>
+      </div>
     </div>
     <div class="ep-modal__footer">
       <button class="ep-btn ep-btn--ghost" onclick="closeReturnModal()">Cancel</button>
@@ -196,13 +200,13 @@ if (user.id && user.id !== "demo" && user.school_name) {
   
   console.log("All school submissions:", subs);
   
-  // Filter to show only submissions directed to this user
-  // Support both formats: user ID and role string
-  const filteredSubs = (subs || []).filter(s => 
-    s.submitted_to === user.id || 
-    s.submitted_to === user.role ||
-    ["principal","hod","admin"].includes(user.role) // principals/admins see all
-  );
+  // Filter submissions:
+  // - Admin sees ALL school submissions
+  // - Principal and HOD see only submissions directed to them
+  const filteredSubs = (subs || []).filter(s => {
+    if (user.role === "admin") return true; // admin sees all
+    return s.submitted_to === user.id || s.submitted_to === user.role;
+  });
   if (filteredSubs) {
     allSubmitted = filteredSubs.map(s => ({
       id:            s.plan_id,
@@ -332,7 +336,11 @@ async function confirmReturn() {
   const comment = document.getElementById("returnComment").value.trim();
   if (!comment) { alert("Please enter a comment explaining why the plan is being returned."); return; }
   if (user.id && user.id !== "demo") {
-    await sb.from("submissions").update({ status:"returned", review_comment: comment, returned_at: new Date().toISOString() }).eq("plan_id", returnTargetId);
+    const suggestion = document.getElementById("returnSuggestion")?.value?.trim() || "";
+    const fullComment = suggestion ? `${comment}
+
+Suggested correction: ${suggestion}` : comment;
+    await sb.from("submissions").update({ status:"returned", review_comment: fullComment, returned_at: new Date().toISOString() }).eq("plan_id", returnTargetId);
     await sb.from("plans").update({ status:"returned" }).eq("id", returnTargetId);
   } else {
     const p2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
