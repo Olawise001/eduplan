@@ -440,37 +440,27 @@ let currentTab = "staff";
 (async () => {
   try {
     const sb2 = getSupabase();
-
-    // Get session directly
     const { data: { session } } = await sb2.auth.getSession();
 
     if (session) {
-      // Fetch profile directly from Supabase — bypass localStorage entirely
-      const { data: freshProfile, error } = await sb2
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (error || !freshProfile) {
-        // Profile not found — create it
-        const meta = session.user.user_metadata || {};
-        const newProfile = {
-          id:      session.user.id,
-          name:    meta.name  || session.user.email.split("@")[0],
-          email:   session.user.email,
-          type:    meta.type  || "individual",
-          role:    meta.role  || "teacher",
-          credits: 0,
-        };
-        await sb2.from("profiles").insert(newProfile);
-        user = newProfile;
-      } else {
-        user = freshProfile;
+      // Try to fetch fresh profile — fall back to cache if network fails
+      try {
+        const { data: freshProfile } = await sb2
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+        if (freshProfile) {
+          user = freshProfile;
+          Auth.set(user);
+        } else {
+          user = Auth.get() || { id: session.user.id, email: session.user.email, type: session.user.user_metadata?.type || "individual", role: session.user.user_metadata?.role || "teacher", credits: 0 };
+        }
+      } catch (fetchErr) {
+        console.warn("Profile fetch failed, using cache:", fetchErr.message);
+        user = Auth.get() || { id: session.user.id, email: session.user.email, type: session.user.user_metadata?.type || "individual", role: session.user.user_metadata?.role || "teacher", credits: 0 };
       }
-      Auth.set(user);
     } else {
-      // No session — use localStorage only for demo mode
       user = Auth.get();
       if (!user) { window.location.href = "login.html"; return; }
     }
@@ -696,52 +686,46 @@ async function addStaff() {
   btn.disabled = true;
   btn.textContent = "Adding…";
 
-  // Sign up via Supabase Auth
-  const { data, error } = await sb.auth.signUp({
-    email, password,
-    options: {
-      data: {
-        name:           first + " " + last,
-        type:           "school",
-        role,
-        subject,
-        school_name:    user.school_name,
-        school_address: user.school_address || "",
-        state:          user.state          || "",
-        school_type:    user.school_type    || "",
+  // Use Edge Function to create staff — bypasses all RLS restrictions
+  try {
+    const sbClient = getSupabase();
+    const { data: { session } } = await sbClient.auth.getSession();
+    const authToken = session?.access_token || "";
+    console.log("Using token:", authToken ? "present" : "MISSING");
+
+    const resp = await fetch(
+      `${EDUPLAN_CONFIG.SUPABASE_URL}/functions/v1/create-staff`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${authToken}`,
+          "apikey":        EDUPLAN_CONFIG.SUPABASE_ANON,
+        },
+        body: JSON.stringify({ name: first + " " + last, email, password, role, subject }),
       }
+    );
+
+    const result = await resp.json();
+    console.log("Create staff result:", result);
+
+    if (!resp.ok || !result.success) {
+      errEl.textContent = result.error || "Failed to add staff member.";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Add Staff Member';
+      return;
     }
-  });
 
-  if (error) {
-    errEl.textContent = error.message;
+    closeInviteModal();
+    showToast(`${first} ${last} added successfully!`, "success");
+    await loadStaff();
+    renderOverview();
+
+  } catch (err) {
+    errEl.textContent = "Network error: " + err.message;
     errEl.style.display = "block";
-    btn.disabled = false;
-    btn.textContent = "Add Staff Member";
-    return;
   }
-
-  // Update profile with full details
-  if (data.user) {
-    await sb.from("profiles").upsert({
-      id:             data.user.id,
-      name:           first + " " + last,
-      email,
-      type:           "school",
-      role,
-      subject,
-      school_name:    user.school_name,
-      school_address: user.school_address || "",
-      state:          user.state          || "",
-      school_type:    user.school_type    || "",
-      credits:        0,
-    });
-  }
-
-  closeInviteModal();
-  showToast(`${first} ${last} added successfully!`, "success");
-  await loadStaff();
-  renderOverview();
 
   btn.disabled = false;
   btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Add Staff Member';

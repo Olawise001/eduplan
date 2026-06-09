@@ -486,5 +486,16 @@ button, input, select, textarea { font-family: inherit; }
   .ep-type-selector { grid-template-columns: 1fr; }
   .ep-hero__stats { gap: 24px; }
   .ep-pricing-grid { grid-template-columns: 1fr; }
-  .ep-pkg-grid { grid-template-columns: 1fr 1fr; }
+  .ep-pkg-grid { grid-template-columns: 1fr; }
+  .ep-pkg-card__credits { font-size: 32px; }
+  .ep-pkg-card__price { font-size: 16px; }
+  .ep-pkg-card { padding: 16px 12px; }
+  .ep-topup-hero { flex-direction: column; gap: 12px; }
+  .ep-topup-hero__divider { display: none; }
+}
+
+/* Topup page two-column layout fix for mobile */
+@media (max-width: 768px) {
+  .ep-topup-two-col { grid-template-columns: 1fr !important; }
+  .ep-pkg-card--popular::before { display: none; }
 }

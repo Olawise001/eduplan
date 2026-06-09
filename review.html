@@ -189,7 +189,7 @@ let allSubmitted = [];
 if (user.id && user.id !== "demo" && user.school_name) {
   const { data: subs } = await sb.from("submissions")
     .select("*, plans(*)")
-    .eq("school_name", user.school_name)
+    .eq("submitted_to", user.id)  // only show plans submitted TO this user
     .order("submitted_at", { ascending: false });
   if (subs) {
     allSubmitted = subs.map(s => ({

@@ -69,10 +69,9 @@
           <div class="ep-form-group full" id="submitToGroup">
             <label>Submit To <span class="req">*</span></label>
             <select class="ep-select" id="submitTo">
-              <option value="hod">Head of Department (HOD)</option>
-              <option value="principal">Principal / Vice Principal</option>
+              <option value="">Select a superior…</option>
             </select>
-            <span class="ep-input-hint">School accounts: the plan goes into the recipient's review inbox.</span>
+            <span class="ep-input-hint">Select the HOD or Principal to submit this plan to for review.</span>
           </div>
           <div class="ep-form-group full">
             <label>Notes to Reviewer (optional)</label>
@@ -113,88 +112,132 @@
 <script src="assets/config.js"></script>
 <script>
 const sb = getSupabase();
-let user = Auth.get(); // cached
+let user = Auth.get();
 
 (async () => {
   await Auth.requireAuth();
   user = Auth.get();
-document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
-document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
+  document.getElementById("topCredits").textContent = (user.credits||0) + " credits";
+  document.getElementById("avatarBtn").textContent  = (user.name||"?")[0].toUpperCase();
 
-if (user.type === "individual") {
-  document.getElementById("submitToGroup").style.display = "none";
-}
+  // Load plans
+  let plans = [];
+  if (user.id && user.id !== "demo") {
+    const { data } = await sb.from("plans")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "draft")
+      .order("saved_at", { ascending: false });
+    plans = data || [];
+  } else {
+    plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  }
 
-let selectedPlanId = null;
-let plans = [];
-if (user.id && user.id !== "demo") {
-  const { data } = await sb.from("plans").select("*").eq("user_id", user.id).eq("status","draft").order("saved_at",{ascending:false});
-  plans = data || [];
-} else {
-  plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-}
-const list  = document.getElementById("planSelectList");
-
-if (plans.length > 0) {
-  list.innerHTML = plans.map((p,i) => `
-    <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);" class="plan-row" data-id="${p.id}">
-      <div style="width:36px;height:36px;background:var(--paler);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="var(--pine)" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+  const list = document.getElementById("planSelectList");
+  if (plans.length > 0) {
+    list.innerHTML = plans.map(p => `
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);">
+        <div style="width:36px;height:36px;background:var(--paler);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="var(--pine)" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--ink);">${esc(p.title||"Untitled")}</div>
+          <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">${esc(p.meta||"")} · ${new Date(p.saved_at).toLocaleDateString("en-GB")}</div>
+        </div>
+        <span class="ep-plan-status ep-plan-status--${p.status||'draft'}">${capitalize(p.status||'draft')}</span>
+        <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="selectPlan(${p.id})">
+          Select
+          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
       </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--ink);">${esc(p.title)}</div>
-        <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">${esc(p.meta||"")} · Saved ${esc(p.savedAt)}</div>
-      </div>
-      <span class="ep-plan-status ep-plan-status--${p.status||'draft'}">${capitalize(p.status||'draft')}</span>
-      <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="selectPlan(${p.id})">
-        Select
-        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </button>
-    </div>
-  `).join("");
-}
+    `).join("");
+  } else {
+    list.innerHTML = `<p style="color:var(--ink-soft);font-style:italic;font-size:14px;">No draft plans found. <a href="generate.html" style="color:var(--sage);font-weight:600;">Generate one first</a>.</p>`;
+  }
+
+  // Load school superiors for submit-to dropdown
+  if (user.type === "individual") {
+    document.getElementById("submitToGroup").style.display = "none";
+  } else if (user.school_name) {
+    await loadSuperiors();
+  }
 
 })();
 
-function selectPlan(id) {
-  selectedPlanId = id;
-  const p = plans.find(x=>x.id===id);
-  if (!p) return;
-  document.getElementById("submitFormTitle").textContent = "Submit: " + (p.title||"Lesson Plan");
-  document.getElementById("submitForm").style.display = "";
-  document.getElementById("submitForm").scrollIntoView({behavior:"smooth",block:"start"});
+async function loadSuperiors() {
+  const submitTo = document.getElementById("submitTo");
+  submitTo.innerHTML = '<option value="">Loading staff…</option>';
+
+  const { data: superiors } = await sb.from("profiles")
+    .select("id, name, role")
+    .eq("school_name", user.school_name)
+    .in("role", ["principal", "vp", "hod", "admin"])
+    .neq("id", user.id) // exclude yourself
+    .order("name");
+
+  if (!superiors || superiors.length === 0) {
+    submitTo.innerHTML = '<option value="">No superiors found in your school</option>';
+    return;
+  }
+
+  submitTo.innerHTML = superiors.map(s => `
+    <option value="${s.id}">
+      ${s.name} — ${roleLabel(s.role)}
+    </option>
+  `).join("");
 }
 
-function doSubmit() {
+function roleLabel(role) {
+  const map = { principal:"Principal", vp:"Vice Principal", hod:"HOD", admin:"Admin" };
+  return map[role] || role;
+}
+
+let selectedPlanId = null;
+
+function selectPlan(id) {
+  selectedPlanId = id;
+  document.getElementById("submitFormTitle").textContent = "Submit Plan";
+  document.getElementById("submitForm").style.display = "";
+  document.getElementById("submitForm").scrollIntoView({ behavior:"smooth", block:"start" });
+}
+
+async function doSubmit() {
   if (!selectedPlanId) return;
-  const submitTo = document.getElementById("submitTo").value;
-  const notes    = document.getElementById("submitNotes").value.trim();
+  const submitToVal = document.getElementById("submitTo").value;
+  const notes       = document.getElementById("submitNotes").value.trim();
+
+  if (!submitToVal && user.type === "school") {
+    showToast("Please select who to submit to.", "warning");
+    return;
+  }
+
+  // Get the selected superior's name for the success message
+  const submitToSelect = document.getElementById("submitTo");
+  const submitToName   = submitToSelect.options[submitToSelect.selectedIndex]?.text || "";
 
   if (user.id && user.id !== "demo") {
-    // Update plan status
     await sb.from("plans").update({ status: "pending" }).eq("id", selectedPlanId);
-    // Insert submission record
     await sb.from("submissions").insert({
       plan_id:      selectedPlanId,
       teacher_id:   user.id,
       school_name:  user.school_name || "",
-      submitted_to: submitTo,
+      submitted_to: submitToVal,
       submit_notes: notes,
       status:       "pending",
     });
   } else {
     const plans2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
-    const idx = plans2.findIndex(x=>x.id===selectedPlanId);
+    const idx = plans2.findIndex(x => x.id === selectedPlanId);
     if (idx !== -1) { plans2[idx].status = "pending"; localStorage.setItem("eduplan_plans", JSON.stringify(plans2)); }
   }
 
   document.getElementById("submitForm").style.display = "none";
   const detail = user.type === "individual"
-    ? "Your plan has been saved with submitted status."
-    : `Your plan has been sent to your ${submitTo === "hod" ? "HOD" : "Principal"} for review.`;
+    ? "Your plan has been saved."
+    : `Your plan has been sent to ${submitToName} for review.`;
   document.getElementById("successDetail").textContent = detail;
   document.getElementById("submitSuccess").style.display = "";
-  document.getElementById("submitSuccess").scrollIntoView({behavior:"smooth",block:"start"});
+  document.getElementById("submitSuccess").scrollIntoView({ behavior:"smooth", block:"start" });
 }
 
 function directDownload() {
