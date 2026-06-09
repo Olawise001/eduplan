@@ -64,12 +64,22 @@ const Auth = {
     const sb = getSupabase();
     const id = uid || (await sb.auth.getUser()).data?.user?.id;
     if (!id) return null;
-    const { data, error } = await sb.from("profiles").select("*").eq("id", id).single();
+    const { data, error } = await sb.from("profiles").select("*, schools(id, name, address, state, school_type, credits, subscription_status)").eq("id", id).single();
     if (error) {
       console.error("refreshProfile error:", error.message, "for id:", id);
       return this.get(); // return cached if fetch fails
     }
-    if (data) this.set(data);
+    if (data) {
+      // Flatten school data into profile for easy access
+      if (data.schools) {
+        data.school_id    = data.schools.id;
+        data.school_name  = data.schools.name;
+        data.school_address = data.schools.address;
+        data.state        = data.schools.state;
+        data.school_type  = data.schools.school_type;
+      }
+      this.set(data);
+    }
     return data;
   },
 
