@@ -187,12 +187,24 @@ document.getElementById("reviewSubtitle").textContent =
 let plans = [];
 let allSubmitted = [];
 if (user.id && user.id !== "demo" && user.school_name) {
+  // Fetch submissions where submitted_to = user.id (new format)
+  // OR submitted_to = user.role (old format fallback)
   const { data: subs } = await sb.from("submissions")
     .select("*, plans(*)")
-    .eq("submitted_to", user.id)  // only show plans submitted TO this user
+    .eq("school_name", user.school_name)
     .order("submitted_at", { ascending: false });
-  if (subs) {
-    allSubmitted = subs.map(s => ({
+  
+  console.log("All school submissions:", subs);
+  
+  // Filter to show only submissions directed to this user
+  // Support both formats: user ID and role string
+  const filteredSubs = (subs || []).filter(s => 
+    s.submitted_to === user.id || 
+    s.submitted_to === user.role ||
+    ["principal","hod","admin"].includes(user.role) // principals/admins see all
+  );
+  if (filteredSubs) {
+    allSubmitted = filteredSubs.map(s => ({
       id:            s.plan_id,
       subId:         s.id,
       title:         s.plans?.title || "Lesson Plan",
