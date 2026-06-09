@@ -259,6 +259,28 @@ function directDownload() {
 
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// ── Sidebar visibility based on role ─────────────────────────────────
+function setupSidebar() {
+  const u = Auth.get();
+  if (!u) return;
+  const schoolSection = document.getElementById("schoolSection");
+  const adminLink     = document.getElementById("adminSideLink");
+  if (schoolSection) {
+    // Show school section only for superiors
+    if (u.type === "school" && ["principal","hod","admin","vp"].includes(u.role)) {
+      schoolSection.style.display = "";
+    }
+  }
+  if (adminLink) {
+    // Show admin link only for admin role
+    if (u.type === "school" && u.role === "admin") {
+      adminLink.style.display = "";
+    }
+  }
+}
+setupSidebar();
+
 function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
 </script>
 </body>
