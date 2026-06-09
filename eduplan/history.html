@@ -190,14 +190,26 @@ if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
 // Load plans
 if (user.id && user.id !== "demo") {
   const { data, error } = await sb.from("plans")
-    .select("*")
+    .select("*, submissions(status, review_comment, approved_at, returned_at, submitted_to)")
     .eq("user_id", user.id)
     .order("saved_at", { ascending: false });
   if (error) {
     console.error("Plans fetch error:", error);
     plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
   } else {
-    plans = data || [];
+    plans = (data || []).map(p => {
+      // Use latest submission status if available
+      const latestSub = p.submissions && p.submissions.length > 0 
+        ? p.submissions[p.submissions.length - 1] 
+        : null;
+      return {
+        ...p,
+        status: latestSub?.status || p.status || "draft",
+        reviewComment: latestSub?.review_comment || null,
+        approvedAt:    latestSub?.approved_at || null,
+        returnedAt:    latestSub?.returned_at || null,
+      };
+    });
   }
   // Merge unsynced localStorage plans
   const localPlans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
@@ -283,7 +295,10 @@ function renderList() {
           <div class="ep-plan-row__info">
             <div class="ep-plan-row__title">${esc(p.title||"Untitled Plan")}</div>
             <div class="ep-plan-row__meta">${esc(p.class||"")} · ${esc(p.subject||"")} · Saved ${esc(p.savedAt||"")}${p.submittedAt?" · Submitted "+esc(p.submittedAt):""}</div>
-            ${p.reviewComment?`<div style="font-size:11px;color:var(--danger);margin-top:3px;">Reviewer note: ${esc(p.reviewComment)}</div>`:""}
+            ${p.reviewComment?`<div style="font-size:11px;color:var(--danger);margin-top:3px;">
+              <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:-1px;margin-right:3px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Reviewer: ${esc(p.reviewComment)}</div>`:""}
+            ${p.approvedAt?`<div style="font-size:11px;color:var(--pine);margin-top:3px;">✓ Approved ${esc(new Date(p.approvedAt).toLocaleDateString('en-GB'))}</div>`:""}
           </div>
           <span class="ep-plan-status ep-plan-status--${statusClass}">${statusLabel}</span>
           <div class="ep-plan-row__actions" onclick="event.stopPropagation()">
