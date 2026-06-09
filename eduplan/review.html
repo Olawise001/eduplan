@@ -310,15 +310,22 @@ async function approvePlan(id) {
   const plan = allSubmitted.find(p=>p.id===id);
   if (!plan) return;
   if (user.id && user.id !== "demo") {
-    await sb.from("submissions").update({ status:"approved", approved_at: new Date().toISOString(), approved_by: user.name }).eq("plan_id", id);
+    const { error: subErr } = await sb.from("submissions")
+      .update({ status:"approved", approved_at: new Date().toISOString(), approved_by: user.name })
+      .eq("plan_id", id);
+    if (subErr) { showToast("Error: " + subErr.message, "error"); return; }
     await sb.from("plans").update({ status: "approved" }).eq("id", id);
   } else {
     const p2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
     const idx = p2.findIndex(p=>p.id===id);
     if (idx!==-1){ p2[idx].status="approved"; localStorage.setItem("eduplan_plans", JSON.stringify(p2)); }
   }
-  plan.status = "approved";
-  plan.approvedAt = new Date().toLocaleDateString("en-GB");
+  // Update local array so refresh shows correct state
+  const subIdx = allSubmitted.findIndex(p=>p.id===id);
+  if (subIdx !== -1) {
+    allSubmitted[subIdx].status = "approved";
+    allSubmitted[subIdx].approvedAt = new Date().toLocaleDateString("en-GB");
+  }
   updateCounts();
   renderReviewList();
   showToast("Plan approved!", "success");
@@ -358,14 +365,20 @@ Suggested correction: ${suggestion}` : comment;
   showToast("Plan returned to teacher.", "info");
 }
 
-function viewPlan(id) {
+async function viewPlan(id) {
   viewTargetId = id;
   const p = plans.find(x=>x.id===id);
   if (!p) return;
   document.getElementById("viewTitle").textContent = p.title||"Lesson Plan";
-  document.getElementById("viewContent").innerHTML = p.html
-    ? `<div style="font-size:13px;">${p.html}</div>`
-    : `<p style="color:var(--ink-soft);font-style:italic;">No preview content.</p>`;
+  if (p.html) {
+    document.getElementById("viewContent").innerHTML = `<div style="font-size:13px;line-height:1.7;">${p.html}</div>`;
+  } else {
+    // Try to load from Supabase plans table
+    const { data: planData } = await sb.from("plans").select("html,title").eq("id", p.id).single();
+    document.getElementById("viewContent").innerHTML = planData?.html
+      ? `<div style="font-size:13px;line-height:1.7;">${planData.html}</div>`
+      : `<p style="color:var(--ink-soft);font-style:italic;">No preview content available for this plan.</p>`;
+  }
   const footer = document.getElementById("viewFooter");
   footer.innerHTML = `<button class="ep-btn ep-btn--ghost" onclick="closeViewModal()">Close</button>`;
   if (p.status === "pending") {
