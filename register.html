@@ -280,12 +280,29 @@ async function submitRegistration() {
 
   if (error) return fail(error.message, btn);
 
+  // For school accounts - create a school record first
+  let schoolId = null;
+  if (selectedType === "school" && data.user) {
+    const { data: schoolData } = await sb.from("schools").insert({
+      name:        meta.school_name,
+      address:     meta.school_address || "",
+      state:       meta.state          || "",
+      school_type: meta.school_type    || "Private",
+    }).select("id").single();
+    if (schoolData) schoolId = schoolData.id;
+  }
+
   // Update profile with extra fields (trigger creates the base row)
   if (data.user) {
     await sb.from("profiles").update({
       ...meta,
+      school_id: schoolId,
       credits: 0
     }).eq("id", data.user.id);
+    // Update school admin_id
+    if (schoolId) {
+      await sb.from("schools").update({ admin_id: data.user.id }).eq("id", schoolId);
+    }
   }
 
   document.getElementById("successMsg").textContent = selectedType === "school"

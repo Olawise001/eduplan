@@ -64,10 +64,24 @@ const Auth = {
     const sb = getSupabase();
     const id = uid || (await sb.auth.getUser()).data?.user?.id;
     if (!id) return null;
+    // Fetch profile first
     const { data, error } = await sb.from("profiles").select("*").eq("id", id).single();
     if (error) {
       console.error("refreshProfile error:", error.message, "for id:", id);
-      return this.get(); // return cached if fetch fails
+      return this.get();
+    }
+    // Then fetch school data separately if school_id exists
+    if (data?.school_id) {
+      const { data: schoolData } = await sb.from("schools")
+        .select("id, name, address, state, school_type, credits, subscription_status")
+        .eq("id", data.school_id)
+        .single();
+      if (schoolData) {
+        data.school_name    = schoolData.name;
+        data.school_address = schoolData.address;
+        data.state          = schoolData.state;
+        data.school_type    = schoolData.school_type;
+      }
     }
     if (data) this.set(data);
     return data;

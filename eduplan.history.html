@@ -182,9 +182,9 @@ async function loadSuperiors() {
 
   const { data: superiors } = await sb.from("profiles")
     .select("id, name, role")
-    .eq("school_id", user.school_id)
+    .eq("school_name", user.school_name)
     .in("role", ["principal", "vp", "hod", "admin"])
-    .neq("id", user.id)
+    .neq("id", user.id) // exclude yourself
     .order("name");
 
   if (!superiors || superiors.length === 0) {
@@ -233,7 +233,6 @@ async function doSubmit() {
       plan_id:      selectedPlanId,
       teacher_id:   user.id,
       school_name:  user.school_name || "",
-      school_id:    user.school_id   || null,
       submitted_to: submitToVal,
       submit_notes: notes,
       status:       "pending",

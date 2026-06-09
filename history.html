@@ -80,6 +80,7 @@
     <div class="ep-sidebar__section" id="schoolSection" style="display:none;">
       <div class="ep-sidebar__label">School</div>
       <a href="review.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Plans</a>
+      <a href="admin.html" class="ep-sidebar__link" id="adminSideLink" style="display:none;"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>School Admin</a>
     </div>
     <div class="ep-sidebar__section">
       <div class="ep-sidebar__label">Account</div>
@@ -174,6 +175,8 @@
 <script>
 const sb = getSupabase();
 let user = Auth.get(); // cached
+let plans = []; // declared at top level so all functions can access it
+let activePlanId = null;
 
 (async () => {
   await Auth.requireAuth();
@@ -184,21 +187,46 @@ if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
   document.getElementById("schoolSection").style.display = "";
 }
 
-let plans = [];
+// Load plans
 if (user.id && user.id !== "demo") {
-  const { data } = await sb.from("plans").select("*").eq("user_id", user.id).order("saved_at", { ascending: false });
-  plans = data || [];
+  const { data, error } = await sb.from("plans")
+    .select("*, submissions(status, review_comment, approved_at, returned_at, submitted_to)")
+    .eq("user_id", user.id)
+    .order("saved_at", { ascending: false });
+  if (error) {
+    console.error("Plans fetch error:", error);
+    plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  } else {
+    plans = (data || []).map(p => {
+      // Use latest submission status if available
+      const latestSub = p.submissions && p.submissions.length > 0 
+        ? p.submissions[p.submissions.length - 1] 
+        : null;
+      return {
+        ...p,
+        status: latestSub?.status || p.status || "draft",
+        reviewComment: latestSub?.review_comment || null,
+        approvedAt:    latestSub?.approved_at || null,
+        returnedAt:    latestSub?.returned_at || null,
+      };
+    });
+  }
+  // Merge unsynced localStorage plans
+  const localPlans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
+  const sbIds = new Set(plans.map(p => String(p.id)));
+  const unsynced = localPlans.filter(p => !sbIds.has(String(p.id)));
+  if (unsynced.length > 0) plans = [...plans, ...unsynced];
+  console.log("Total plans:", plans.length, "user:", user.id);
 } else {
   plans = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
 }
-let activePlanId = null;
-
 // Populate subject filter
 const subjects = [...new Set(plans.map(p=>p.subject).filter(Boolean))].sort();
 const subjectSel = document.getElementById("filterSubject");
 subjects.forEach(s => { const o = document.createElement("option"); o.value=s; o.textContent=s; subjectSel.appendChild(o); });
 
-// Stats
+renderStats();
+renderList();
 })();
 
 function renderStats() {
@@ -267,13 +295,20 @@ function renderList() {
           <div class="ep-plan-row__info">
             <div class="ep-plan-row__title">${esc(p.title||"Untitled Plan")}</div>
             <div class="ep-plan-row__meta">${esc(p.class||"")} · ${esc(p.subject||"")} · Saved ${esc(p.savedAt||"")}${p.submittedAt?" · Submitted "+esc(p.submittedAt):""}</div>
-            ${p.reviewComment?`<div style="font-size:11px;color:var(--danger);margin-top:3px;">Reviewer note: ${esc(p.reviewComment)}</div>`:""}
+            ${p.reviewComment?`<div style="font-size:11px;color:var(--danger);margin-top:3px;">
+              <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:-1px;margin-right:3px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Reviewer: ${esc(p.reviewComment)}</div>`:""}
+            ${p.approvedAt?`<div style="font-size:11px;color:var(--pine);margin-top:3px;">✓ Approved ${esc(new Date(p.approvedAt).toLocaleDateString('en-GB'))}</div>`:""}
           </div>
           <span class="ep-plan-status ep-plan-status--${statusClass}">${statusLabel}</span>
           <div class="ep-plan-row__actions" onclick="event.stopPropagation()">
             <button class="ep-btn ep-btn--ghost ep-btn--sm" onclick="openPlan(${p.id})">
               <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               View
+            </button>
+            <button class="ep-btn ep-btn--sage ep-btn--sm" onclick="resubmitPlan(${p.id})">
+              <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Resubmit
             </button>
           </div>
         </div>`;
@@ -335,17 +370,42 @@ function clearFilters() {
   renderList();
 }
 
+function resubmitPlan(id) {
+  // Store plan id and redirect to submit page
+  localStorage.setItem("resubmit_plan_id", id);
+  window.location.href = "submit.html";
+}
+
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// ── Sidebar visibility based on role ─────────────────────────────────
+function setupSidebar() {
+  const u = Auth.get();
+  if (!u) return;
+  const schoolSection = document.getElementById("schoolSection");
+  const adminLink     = document.getElementById("adminSideLink");
+  if (schoolSection) {
+    // Show school section only for superiors
+    if (u.type === "school" && ["principal","hod","admin","vp"].includes(u.role)) {
+      schoolSection.style.display = "";
+    }
+  }
+  if (adminLink) {
+    // Show admin link only for admin role
+    if (u.type === "school" && u.role === "admin") {
+      adminLink.style.display = "";
+    }
+  }
+}
+setupSidebar();
+
 function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
 
 // Close modal on overlay click
 document.getElementById("previewModal").addEventListener("click", e => {
   if (e.target === e.currentTarget) closeModal();
 });
-
-renderStats();
-renderList();
 </script>
 </body>
 </html>

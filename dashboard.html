@@ -75,7 +75,7 @@
     <div class="ep-sidebar__section" id="schoolSection" style="display:none;">
       <div class="ep-sidebar__label">School</div>
       <a href="review.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Plans</a>
-      <a href="admin.html" class="ep-sidebar__link"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>School Admin</a>
+      <a href="admin.html" class="ep-sidebar__link" id="adminSideLink" style="display:none;"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>School Admin</a>
     </div>
     <div class="ep-sidebar__section">
       <div class="ep-sidebar__label">Account</div>
@@ -180,6 +180,8 @@ async function init() {
   if (!ok) return;
 
   const user = Auth.get();
+  if (!user) { window.location.href = "login.html"; return; }
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   document.getElementById("welcomeMsg").textContent = `${greeting}, ${(user.name||"Teacher").split(" ")[0]}!`;
@@ -194,10 +196,15 @@ async function init() {
   document.getElementById("menuName").textContent    = user.name || "";
   document.getElementById("menuEmail").textContent   = user.email || "";
 
-  if (user.type === "school" && ["principal","hod","admin"].includes(user.role)) {
+  if (user.type === "school" && ["principal","hod","admin","vp"].includes(user.role)) {
     document.getElementById("schoolSection").style.display = "";
     document.getElementById("statPendingCard").style.display = "";
+  }
+  // Refresh profile to get latest role then show admin card
+  const freshUser = await Auth.refreshProfile();
+  if (freshUser && freshUser.type === "school" && freshUser.role === "admin") {
     document.getElementById("adminCard").style.display = "";
+    document.getElementById("adminSideLink") && (document.getElementById("adminSideLink").style.display = "");
   }
   if (credits < 10) {
     const b = document.getElementById("lowCreditsBanner");
