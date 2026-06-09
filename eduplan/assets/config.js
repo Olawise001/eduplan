@@ -8,7 +8,7 @@ const EDUPLAN_CONFIG = {
   SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqZ3hobXRibWNrZnlyaG9qc3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MDg2MDksImV4cCI6MjA5NjQ4NDYwOX0.ZdZi02b3NQ9S4X_kUafu_C8b9iAYWyNUbg3IvrTlbQs",
 
   // ── Flutterwave ───────────────────────────────────────────
-  FLUTTERWAVE_PUBLIC: "YOUR_FLUTTERWAVE_PUBLIC_KEY",
+  FLUTTERWAVE_PUBLIC: "FLWPUBK-11c14c1b4c26cae251267524a97f4c78-X",
 
   // ── Anthropic (Claude API) ────────────────────────────────
   CLAUDE_MODEL: "claude-sonnet-4-20250514",
@@ -64,12 +64,22 @@ const Auth = {
     const sb = getSupabase();
     const id = uid || (await sb.auth.getUser()).data?.user?.id;
     if (!id) return null;
-    const { data, error } = await sb.from("profiles").select("*").eq("id", id).single();
+    const { data, error } = await sb.from("profiles").select("*, schools(id, name, address, state, school_type, credits, subscription_status)").eq("id", id).single();
     if (error) {
       console.error("refreshProfile error:", error.message, "for id:", id);
       return this.get(); // return cached if fetch fails
     }
-    if (data) this.set(data);
+    if (data) {
+      // Flatten school data into profile for easy access
+      if (data.schools) {
+        data.school_id    = data.schools.id;
+        data.school_name  = data.schools.name;
+        data.school_address = data.schools.address;
+        data.state        = data.schools.state;
+        data.school_type  = data.schools.school_type;
+      }
+      this.set(data);
+    }
     return data;
   },
 
