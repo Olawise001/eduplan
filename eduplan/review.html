@@ -161,7 +161,12 @@
 <script src="assets/config.js"></script>
 <script>
 const sb = getSupabase();
-let user = Auth.get(); // cached
+let user = Auth.get();
+let plans = [];
+let allSubmitted = [];
+let currentTab = "pending";
+let returnTargetId = null;
+let viewTargetId   = null;
 
 (async () => {
   await Auth.requireAuth();
@@ -188,25 +193,21 @@ document.getElementById("reviewSubtitle").textContent =
     : "All plans in this school's review queue.";
 
 // Load submissions from Supabase
-let plans = [];
-let allSubmitted = [];
 if (user.id && user.id !== "demo" && user.school_name) {
-  // Fetch submissions where submitted_to = user.id (new format)
-  // OR submitted_to = user.role (old format fallback)
-  const { data: subs } = await sb.from("submissions")
+  const { data: subs, error: subErr } = await sb.from("submissions")
     .select("*, plans(*)")
     .eq("school_name", user.school_name)
     .order("submitted_at", { ascending: false });
-  
-  console.log("All school submissions:", subs);
-  
-  // Filter submissions:
-  // - Admin sees ALL school submissions
-  // - Principal and HOD see only submissions directed to them
+
+  console.log("Submissions fetched:", subs?.length, "error:", subErr?.message, "user role:", user.role, "user id:", user.id);
+
+  // Admin sees all, others see only directed to them
   const filteredSubs = (subs || []).filter(s => {
-    if (user.role === "admin") return true; // admin sees all
-    return s.submitted_to === user.id || s.submitted_to === user.role;
+    if (user.role === "admin") return true;
+    return String(s.submitted_to) === String(user.id) || s.submitted_to === user.role;
   });
+
+  console.log("Filtered submissions:", filteredSubs.length);
   if (filteredSubs) {
     allSubmitted = filteredSubs.map(s => ({
       id:            s.plan_id,
@@ -233,6 +234,8 @@ let currentTab = "pending";
 let returnTargetId = null;
 let viewTargetId   = null;
 
+updateCounts();
+renderReviewList();
 })();
 
 function setTab(tab) {
@@ -389,8 +392,6 @@ function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
 
-updateCounts();
-renderReviewList();
 </script>
 </body>
 </html>
