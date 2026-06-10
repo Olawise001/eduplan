@@ -546,7 +546,8 @@ let currentTab = "staff";
 })();
 
 async function loadAll() {
-  await Promise.all([loadStaff(), loadPlans()]);
+  await loadStaff();      // load staff first
+  await loadPlans();      // then load plans using staff IDs
   renderOverview();
   renderActivity();
 }
@@ -629,12 +630,11 @@ function filterStaff() {
 // ── Load plans ────────────────────────────────────────────────────────
 async function loadPlans(retries = 3) {
   try {
-    const staffIds = allStaff.map(s => s.id);
-    if (staffIds.length === 0) { allPlans = []; document.getElementById("cntPlans").textContent = 0; renderPlans([]); return; }
+    if (!user.school_id) { allPlans = []; document.getElementById("cntPlans").textContent = 0; renderPlans([]); return; }
 
     const { data, error } = await sb.from("plans")
       .select("*, profiles(name, role)")
-      .in("user_id", staffIds)
+      .eq("school_id", user.school_id)
       .order("saved_at", { ascending: false });
 
     if (error) throw error;
