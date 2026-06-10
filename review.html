@@ -303,6 +303,30 @@ function renderReviewList() {
   `).join("");
 }
 
+
+// ── Send notification helper ──────────────────────────────────────────
+async function sendNotification(type, planId) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const resp = await fetch(
+      `${EDUPLAN_CONFIG.SUPABASE_URL}/functions/v1/send-notification`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+          "apikey":        EDUPLAN_CONFIG.SUPABASE_ANON,
+        },
+        body: JSON.stringify({ type, plan_id: planId }),
+      }
+    );
+    const result = await resp.json();
+    console.log("Notification sent:", result);
+  } catch (err) {
+    console.warn("Notification failed:", err.message);
+  }
+}
+
 async function approvePlan(id) {
   const plan = allSubmitted.find(p=>p.id===id);
   if (!plan) return;
@@ -326,6 +350,7 @@ async function approvePlan(id) {
   updateCounts();
   renderReviewList();
   showToast("Plan approved!", "success");
+  sendNotification("approved", id);
 }
 
 function openReturnModal(id) {
@@ -356,6 +381,7 @@ Suggested correction: ${suggestion}` : comment;
   }
   const plan = allSubmitted.find(p=>p.id===returnTargetId);
   if (plan){ plan.status="returned"; plan.reviewComment=comment; }
+  sendNotification("returned", returnTargetId);
   closeReturnModal();
   updateCounts();
   renderReviewList();

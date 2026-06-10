@@ -189,7 +189,7 @@
       </button>
       <button class="ep-tab-pill" id="tabPlans" onclick="setTab('plans')">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        All Plans
+        Approved Plans
         <span class="ep-count" id="cntPlans">0</span>
       </button>
       <button class="ep-tab-pill" id="tabActivity" onclick="setTab('activity')">
@@ -236,13 +236,6 @@
           <option>First Term</option>
           <option>Second Term</option>
           <option>Third Term</option>
-        </select>
-        <select class="ep-select" id="planStatusFilter"  onchange="filterPlans()" style="max-width:160px;">
-          <option value="">All Statuses</option>
-          <option value="draft">Draft</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="returned">Returned</option>
         </select>
         <input class="ep-input" id="planSearch" type="search" placeholder="Search by topic or teacher…" oninput="filterPlans()" style="max-width:240px;"/>
       </div>
@@ -546,7 +539,8 @@ let currentTab = "staff";
 })();
 
 async function loadAll() {
-  await Promise.all([loadStaff(), loadPlans()]);
+  await loadStaff();      // load staff first
+  await loadPlans();      // then load plans using staff IDs
   renderOverview();
   renderActivity();
 }
@@ -629,12 +623,12 @@ function filterStaff() {
 // ── Load plans ────────────────────────────────────────────────────────
 async function loadPlans(retries = 3) {
   try {
-    const staffIds = allStaff.map(s => s.id);
-    if (staffIds.length === 0) { allPlans = []; document.getElementById("cntPlans").textContent = 0; renderPlans([]); return; }
+    if (!user.school_id) { allPlans = []; document.getElementById("cntPlans").textContent = 0; renderPlans([]); return; }
 
     const { data, error } = await sb.from("plans")
       .select("*, profiles(name, role)")
-      .in("user_id", staffIds)
+      .eq("school_id", user.school_id)
+      .eq("status", "approved")
       .order("saved_at", { ascending: false });
 
     if (error) throw error;
@@ -681,11 +675,9 @@ function renderPlans(list) {
 
 function filterPlans() {
   const term   = document.getElementById("planTermFilter").value;
-  const status = document.getElementById("planStatusFilter").value;
   const search = document.getElementById("planSearch").value.toLowerCase();
   let list = allPlans.filter(p => {
-    if (term   && p.term   !== term)   return false;
-    if (status && (p.status||"draft") !== status) return false;
+    if (term   && p.term !== term) return false;
     if (search && !(p.title||"").toLowerCase().includes(search) && !(p.profiles?.name||"").toLowerCase().includes(search)) return false;
     return true;
   });

@@ -966,7 +966,8 @@ async function savePlanLocally() {
   const parts = meta.split(" · ");
 
   const planData = {
-    user_id: user?.id || null,
+    user_id:   user?.id || null,
+    school_id: user?.school_id || null,
     title,
     meta,
     subject:  parts[1] || "",
