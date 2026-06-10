@@ -229,7 +229,7 @@ async function doSubmit() {
 
   if (user.id && user.id !== "demo") {
     await sb.from("plans").update({ status: "pending" }).eq("id", selectedPlanId);
-    await sb.from("submissions").insert({
+    const { data: newSub } = await sb.from("submissions").insert({
       plan_id:      selectedPlanId,
       teacher_id:   user.id,
       school_name:  user.school_name || "",
@@ -237,7 +237,26 @@ async function doSubmit() {
       submitted_to: submitToVal,
       submit_notes: notes,
       status:       "pending",
-    });
+    }).select("id").single();
+
+    // Send email notification to reviewer
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      await fetch(
+        `${EDUPLAN_CONFIG.SUPABASE_URL}/functions/v1/send-notification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+            "apikey":        EDUPLAN_CONFIG.SUPABASE_ANON,
+          },
+          body: JSON.stringify({ type: "submitted", submission_id: newSub?.id }),
+        }
+      );
+    } catch (notifErr) {
+      console.warn("Notification failed:", notifErr.message);
+    }
   } else {
     const plans2 = JSON.parse(localStorage.getItem("eduplan_plans")||"[]");
     const idx = plans2.findIndex(x => x.id === selectedPlanId);
