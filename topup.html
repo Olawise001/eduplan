@@ -213,10 +213,29 @@ let user = Auth.get();
   await Auth.requireAuth();
   user = Auth.get();
   if (!user) return;
-  const credits = user.credits || 0;
+  const credits = Auth.credits();
   document.getElementById("topCredits").textContent  = credits + " credits";
   document.getElementById("heroBalance").textContent = credits;
   document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
+
+  // Show credit breakdown for school users
+  if (user.type === "school") {
+    const personal = Auth.personalCredits();
+    const school   = Auth.schoolCredits();
+    const infoEl   = document.querySelector(".ep-credits-summary__info");
+    if (infoEl) {
+      infoEl.innerHTML = `
+        <h3>${user.role === "admin" ? "Total school credits" : "Your available credits"}</h3>
+        <p style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">
+          Personal: <strong>${personal}</strong> cr &nbsp;·&nbsp; School pool: <strong>${school}</strong> cr
+        </p>
+        <p style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px;">
+          Plans use your personal credits first, then the school pool.
+          ${user.role === "admin" ? " As admin, your top-ups go to the school pool." : " Top up to add personal credits."}
+        </p>`;
+    }
+  }
+
   renderTxHistory();
   // API key now handled server-side via Edge Function
 })();

@@ -49,7 +49,117 @@ const Auth = {
   set(p)       { localStorage.setItem(this._key, JSON.stringify(p)); },
   clear()      { localStorage.removeItem(this._key); localStorage.removeItem("eduplan_plans"); },
   isLoggedIn() { return !!this.get(); },
-  credits()    { return this.get()?.credits || 0; },
+  credits() {
+    const profile = this.get();
+    if (!profile) return 0;
+    // Show personal credits + school pool combined for school users
+    if (profile.type === "school") {
+      const personal = profile.credits || 0;
+      const school   = profile.school_credits || 0;
+      return personal + school;
+    }
+    return profile.credits || 0;
+  },
+
+  personalCredits() {
+    return this.get()?.credits || 0;
+  },
+
+  schoolCredits() {
+    return this.get()?.school_credits || 0;
+  },
+
+  async deductCredits(n) {
+    const profile = this.get();
+    if (!profile) return false;
+    const sb = getSupabase();
+
+    if (profile.type === "school") {
+      const personal = profile.credits || 0;
+      const school   = profile.school_credits || 0;
+
+      if (personal + school < n) return false; // not enough total
+
+      if (personal >= n) {
+        // Deduct from personal credits first
+        const newVal = personal - n;
+        const { error } = await sb.from("profiles")
+          .update({ credits: newVal }).eq("id", profile.id);
+        if (error) return false;
+        await sb.from("transactions").insert({
+          user_id: profile.id, type: "debit",
+          label: "Plan generation (personal)", amount: n, naira: 0
+        });
+        profile.credits = newVal;
+        this.set(profile);
+        return true;
+      } else {
+        // Not enough personal — deduct from school pool
+        const { data: schoolData } = await sb.from("schools")
+          .select("credits").eq("id", profile.school_id).single();
+        if (!schoolData || schoolData.credits < n) return false;
+        const newVal = schoolData.credits - n;
+        const { error } = await sb.from("schools")
+          .update({ credits: newVal }).eq("id", profile.school_id);
+        if (error) return false;
+        await sb.from("transactions").insert({
+          user_id: profile.id, type: "debit",
+          label: "Plan generation (school pool)", amount: n, naira: 0
+        });
+        profile.school_credits = newVal;
+        this.set(profile);
+        return true;
+      }
+    } else {
+      // Individual account — personal credits only
+      if ((profile.credits || 0) < n) return false;
+      const newVal = profile.credits - n;
+      const { error } = await sb.from("profiles")
+        .update({ credits: newVal }).eq("id", profile.id);
+      if (error) return false;
+      await sb.from("transactions").insert({
+        user_id: profile.id, type: "debit",
+        label: "Plan generation", amount: n, naira: 0
+      });
+      profile.credits = newVal;
+      this.set(profile);
+      return true;
+    }
+  },
+
+  async addCredits(n, naira, ref, label) {
+    const profile = this.get();
+    if (!profile) return false;
+    const sb = getSupabase();
+
+    if (profile.type === "school" && profile.role === "admin") {
+      // Admin tops up school pool
+      const { data: school } = await sb.from("schools")
+        .select("credits").eq("id", profile.school_id).single();
+      const newVal = (school?.credits || 0) + n;
+      await sb.from("schools").update({ credits: newVal }).eq("id", profile.school_id);
+      await sb.from("transactions").insert({
+        user_id: profile.id, type: "credit",
+        label: label || `School pool top-up: ${n} credits`,
+        amount: n, naira: naira || 0, reference: ref || ""
+      });
+      profile.school_credits = newVal;
+      this.set(profile);
+      return true;
+    } else {
+      // Individual or school staff — adds to personal credits
+      const newVal = (profile.credits || 0) + n;
+      await sb.from("profiles").update({ credits: newVal }).eq("id", profile.id);
+      await sb.from("transactions").insert({
+        user_id: profile.id, type: "credit",
+        label: label || `Top-up: ${n} credits`,
+        amount: n, naira: naira || 0, reference: ref || ""
+      });
+      profile.credits = newVal;
+      this.set(profile);
+      return true;
+    }
+  },
 
   // Call on every protected page load
   async requireAuth() {
@@ -81,45 +191,11 @@ const Auth = {
         data.school_address = schoolData.address;
         data.state          = schoolData.state;
         data.school_type    = schoolData.school_type;
+        data.school_credits = schoolData.credits; // school shared pool
       }
     }
     if (data) this.set(data);
     return data;
-  },
-
-  async deductCredits(n) {
-    const profile = this.get();
-    if (!profile || profile.credits < n) return false;
-    const sb = getSupabase();
-    const newVal = profile.credits - n;
-    const { error } = await sb.from("profiles")
-      .update({ credits: newVal })
-      .eq("id", profile.id);
-    if (error) return false;
-    // Log debit
-    await sb.from("transactions").insert({
-      user_id: profile.id, type: "debit",
-      label: "Plan generation", amount: n, naira: 0
-    });
-    profile.credits = newVal;
-    this.set(profile);
-    return true;
-  },
-
-  async addCredits(n, naira, ref, label) {
-    const profile = this.get();
-    if (!profile) return false;
-    const sb = getSupabase();
-    const newVal = (profile.credits || 0) + n;
-    await sb.from("profiles").update({ credits: newVal }).eq("id", profile.id);
-    await sb.from("transactions").insert({
-      user_id: profile.id, type: "credit",
-      label: label || `Top-up: ${n} credits`,
-      amount: n, naira: naira || 0, reference: ref || ""
-    });
-    profile.credits = newVal;
-    this.set(profile);
-    return true;
   },
 };
 

@@ -511,8 +511,15 @@ let currentTab = "staff";
   document.getElementById("schoolSubtitle").textContent = `${user.school_name || "Your school"} · ${user.state || ""} · Manage staff, plans and credits`;
   // Load school credits from schools table
   if (user.school_id) {
-    const { data: schoolData } = await sb.from("schools").select("credits, subscription_status").eq("id", user.school_id).single();
-    document.getElementById("schoolCredits").textContent = schoolData?.credits || user.credits || 0;
+    const { data: schoolData } = await sb.from("schools")
+      .select("credits, subscription_status")
+      .eq("id", user.school_id).single();
+    const schoolCredits = schoolData?.credits || 0;
+    document.getElementById("schoolCredits").textContent = schoolCredits;
+    document.getElementById("topCredits").textContent = schoolCredits + " credits";
+    // Update cached school credits
+    user.school_credits = schoolCredits;
+    Auth.set(user);
   } else {
     document.getElementById("schoolCredits").textContent = user.credits || 0;
   }
