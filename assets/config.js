@@ -52,15 +52,22 @@ const Auth = {
   credits() {
     const profile = this.get();
     if (!profile) return 0;
+<<<<<<< HEAD
     // Show personal credits + school pool combined for school users
     if (profile.type === "school") {
       const personal = profile.credits || 0;
       const school   = profile.school_credits || 0;
       return personal + school;
+=======
+    // School accounts show school pool balance
+    if (profile.type === "school" && profile.school_credits !== undefined) {
+      return profile.school_credits || 0;
+>>>>>>> 6b07b76be845512ac9adfd780b0fcb5be7f3e065
     }
     return profile.credits || 0;
   },
 
+<<<<<<< HEAD
   personalCredits() {
     return this.get()?.credits || 0;
   },
@@ -69,11 +76,14 @@ const Auth = {
     return this.get()?.school_credits || 0;
   },
 
+=======
+>>>>>>> 6b07b76be845512ac9adfd780b0fcb5be7f3e065
   async deductCredits(n) {
     const profile = this.get();
     if (!profile) return false;
     const sb = getSupabase();
 
+<<<<<<< HEAD
     if (profile.type === "school") {
       const personal = profile.credits || 0;
       const school   = profile.school_credits || 0;
@@ -113,6 +123,27 @@ const Auth = {
     } else {
       // Individual account — personal credits only
       if ((profile.credits || 0) < n) return false;
+=======
+    if (profile.type === "school" && profile.school_id) {
+      // Deduct from school credits pool
+      const { data: school } = await sb.from("schools")
+        .select("credits").eq("id", profile.school_id).single();
+      if (!school || school.credits < n) return false;
+      const newVal = school.credits - n;
+      const { error } = await sb.from("schools")
+        .update({ credits: newVal }).eq("id", profile.school_id);
+      if (error) return false;
+      await sb.from("transactions").insert({
+        user_id: profile.id, type: "debit",
+        label: "Plan generation", amount: n, naira: 0
+      });
+      profile.school_credits = newVal;
+      this.set(profile);
+      return true;
+    } else {
+      // Individual account
+      if (profile.credits < n) return false;
+>>>>>>> 6b07b76be845512ac9adfd780b0fcb5be7f3e065
       const newVal = profile.credits - n;
       const { error } = await sb.from("profiles")
         .update({ credits: newVal }).eq("id", profile.id);
@@ -132,22 +163,35 @@ const Auth = {
     if (!profile) return false;
     const sb = getSupabase();
 
+<<<<<<< HEAD
     if (profile.type === "school" && profile.role === "admin") {
       // Admin tops up school pool
+=======
+    if (profile.type === "school" && profile.school_id) {
+      // Add to school credits pool
+>>>>>>> 6b07b76be845512ac9adfd780b0fcb5be7f3e065
       const { data: school } = await sb.from("schools")
         .select("credits").eq("id", profile.school_id).single();
       const newVal = (school?.credits || 0) + n;
       await sb.from("schools").update({ credits: newVal }).eq("id", profile.school_id);
       await sb.from("transactions").insert({
         user_id: profile.id, type: "credit",
+<<<<<<< HEAD
         label: label || `School pool top-up: ${n} credits`,
+=======
+        label: label || `School top-up: ${n} credits`,
+>>>>>>> 6b07b76be845512ac9adfd780b0fcb5be7f3e065
         amount: n, naira: naira || 0, reference: ref || ""
       });
       profile.school_credits = newVal;
       this.set(profile);
       return true;
     } else {
+<<<<<<< HEAD
       // Individual or school staff — adds to personal credits
+=======
+      // Individual account
+>>>>>>> 6b07b76be845512ac9adfd780b0fcb5be7f3e065
       const newVal = (profile.credits || 0) + n;
       await sb.from("profiles").update({ credits: newVal }).eq("id", profile.id);
       await sb.from("transactions").insert({
