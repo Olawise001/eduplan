@@ -213,10 +213,30 @@ let user = Auth.get();
   await Auth.requireAuth();
   user = Auth.get();
   if (!user) return;
-  const credits = user.credits || 0;
+  // Show school credits for school accounts, personal for individual
+  const credits = user.type === "school" ? (user.school_credits || 0) : (user.credits || 0);
   document.getElementById("topCredits").textContent  = credits + " credits";
   document.getElementById("heroBalance").textContent = credits;
   document.getElementById("avatarBtn").textContent   = (user.name||"?")[0].toUpperCase();
+
+  // Only admin can top up school credits
+  if (user.type === "school" && user.role !== "admin") {
+    document.getElementById("pkgGrid").innerHTML = `
+      <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--ink-soft);">
+        <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 12px;display:block;opacity:.4;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <p style="font-size:14px;margin-bottom:6px;">Only your school admin can top up school credits.</p>
+        <p style="font-size:12px;">Contact your admin to add more credits to the school pool.</p>
+      </div>`;
+    document.getElementById("payBtn").style.display = "none";
+  }
+
+  // Update hero text for school accounts
+  if (user.type === "school") {
+    document.querySelector(".ep-credits-summary__info h3").textContent = "School credit pool";
+    document.querySelector(".ep-credits-summary__info p").textContent = 
+      "Credits are shared across all staff. Each plan generation costs 5 credits from the school pool.";
+  }
+
   renderTxHistory();
   // API key now handled server-side via Edge Function
 })();
